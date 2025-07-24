@@ -19,12 +19,4 @@ You can install the development version of orc.smc like so:
 devtools::install_github("Sempreteamo/orc.smc")
 
 
-## Example
-
-This is a basic example which shows you how to solve a common problem:
-
-``` r
-library(orc.smc)
-## basic example code
-```
 
