@@ -26,7 +26,7 @@ This is a basic example which the code works for a multivaraite linear gaussian 
 ``` r
 library(orc.smc)
 ## basic example code
-```
+
 
 Napf = N = 100
 lag = 2
@@ -76,3 +76,4 @@ data_ = data <- list(obs = obs_)
 output <- Orc_SMC(lag, data, model, Napf)
 
 log_ratio <- compute_ratio(output$logZ[Time], fkf_obj)
+```
