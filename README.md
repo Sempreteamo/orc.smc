@@ -52,7 +52,7 @@ obs_p <- list(obs_mean = obs_m, obs_cov = obs_c)
 
 model <- list(ini_mu = ini, ini_cov = ini_c, tran_mu = tran_m, tran_cov = tran_c, obs_params = obs_p,
   eval_likelihood = evaluate_likelihood_lg, simu_observation = simulate_observation_lg,
-  parameters = parameters_, dist = 'lg')
+  parameters = parameters_)
 
 set.seed(1234)
 obs_ <- sample_obs(model, Time, d_) #provided by users
