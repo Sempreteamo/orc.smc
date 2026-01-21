@@ -17,7 +17,7 @@ You can install the development version of orc.smc like so:
 # install.packages("devtools")
 
 devtools::install_github("Sempreteamo/orc.smc")
-
+# Load the ORCSMC package developed based on the Arxiv paper
 
 ## Example
 
@@ -27,53 +27,71 @@ This is a basic example which the code works for a multivaraite linear gaussian 
 library(orc.smc)
 ## basic example code
 
+## --- 1. Simulation Setup ---
 
-Napf = N = 100
-lag = 2
-Time = 10
-d_ = 2
+Napf = N = 100 # Number of particles (N)
+lag = 2 # Rolling window length (L)
+Time = 10 # Total time steps (T)
+d_ = 2 # State dimension
 
-alpha = 0.415
+# Construct the Transition Matrix 
+alpha = 0.415 # Correlation coefficient for the transition matrix
+
 tran_m <- matrix(nrow = d_, ncol = d_)
 for (i in 1:d_){
   for (j in 1:d_){
     tran_m[i,j] = alpha^(abs(i-j) + 1)
   }
 }
-ini <- rep(0, d_)
 
-tran_c = diag(1, nrow = d_, ncol = d_)
-ini_c = diag(1, nrow = d_, ncol = d_)
-obs_m = diag(1, nrow = d_, ncol = d_)
-obs_c = diag(1, nrow = d_, ncol = d_)
+## --- 2. Model Specification ---
+
+# Define the Linear Gaussian State-Space Model parameters
+ini <- rep(0, d_) # Initial state mean
+ini_c = diag(1, nrow = d_, ncol = d_) # Initial state covariance
+tran_c = diag(1, nrow = d_, ncol = d_) # State transition noise covariance
+obs_m = diag(1, nrow = d_, ncol = d_) # Observation matrix
+obs_c = diag(1, nrow = d_, ncol = d_) # Observation noise covariance
+
+# ORCSMC specific hyperparameters
 parameters_ <- list(k = 5, tau = 0.5, kappa = 0.5)
 obs_p <- list(obs_mean = obs_m, obs_cov = obs_c)
 
+# Model structure including likelihood and simulation functions
+model <- list(
+  ini_mu = ini, ini_cov = ini_c, 
+  tran_mu = tran_m, tran_cov = tran_c, 
+  obs_params = obs_p,
+  eval_likelihood = evaluate_likelihood_lg, # Evaluates p(y_t | x_t)
+  simu_observation = simulate_observation_lg, 
+  parameters = parameters_
+)
 
-model <- list(ini_mu = ini, ini_cov = ini_c, tran_mu = tran_m, tran_cov = tran_c, obs_params = obs_p,
-  eval_likelihood = evaluate_likelihood_lg, simu_observation = simulate_observation_lg,
-  parameters = parameters_)
+## --- 3. Ground Truth Generation & Benchmarking ---
 
 set.seed(1234)
-obs_ <- sample_obs(model, Time, d_) #provided by users
 
-a0_ = ini      # Initial state mean
-P0_ = ini_c    # Initial state covariance
-Zt_ = obs_m    # Observation matrix (C)
-Ht_ = tran_c   # Observation noise covariance (R)
-Gt_ = obs_c  # Process noise covariance (Q)
+# Simulate observations y_{1:T}
+obs_ <- sample_obs(model, Time, d_) 
 
-dt_ <- ct_ <- matrix(0, d_, 1)
-Tt_ <- as.matrix(tran_m)
-params <- list(dt = dt_, ct = ct_, Tt = Tt_, P0 = P0_ , Zt = Zt_,
-                Ht = Ht_, Gt = Gt_, a0 = a0_, d = d_)
+# Setup parameters for Fast Kalman Filter (FKF)
+params <- list(
+  dt = matrix(0, d_, 1), ct = matrix(0, d_, 1), Tt = as.matrix(tran_m), 
+  P0 = ini_c, Zt = obs_m, Ht = tran_c, Gt = obs_c, a0 = ini, d = d_
+)
 
+# Compute the analytical solution using FKF
 filter <- compute_fkf(params, obs_)
 fkf_obj <- filter[[1]]
+
+## --- 4. ORCSMC Algorithm ---
 
 data_ = data <- list(obs = obs_)
 
 output <- Orc_SMC(lag, data, model, Napf)
 
+## --- 5. Quantitative Evaluation ---
+# A log-ratio close to 1 indicates that ORCSMC successfully learned the optimal 
+# proposal distribution
 log_ratio <- compute_ratio(output$logZ[Time], fkf_obj)
 ```
