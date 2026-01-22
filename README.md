@@ -93,5 +93,5 @@ output <- Orc_SMC(lag, data, model, Napf)
 ## --- 5. Quantitative Evaluation ---
 # A log-ratio close to 1 indicates that ORCSMC successfully learned the optimal 
 # proposal distribution
-log_ratio <- compute_ratio(output$logZ[Time], fkf_obj)
+ratio <- compute_ratio(output$logZ[Time], fkf_obj)
 ```
