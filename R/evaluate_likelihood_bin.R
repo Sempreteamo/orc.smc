@@ -2,28 +2,22 @@
 #'
 #'
 #' @param x Hidden states
-#' @param y Observations
+#' @param datum Observations
 #' @param M Number of experiments for the binomial distribution
 #' @param model the model that used
 #'
 #' @return Log-likelihood
 #' @export
-evaluate_likelihood_bin <- function(x, y, M, model) {
-  M <- model$obs_p
+evaluate_likelihood_bin <- function(x, datum, obs_params) {
+  # M is the number of neurons
+  M <- obs_params[[1]]
 
-  if (length(y) != length(x)) {
-    stop("y and x must be of the same length")
-  }
-
-  # Compute p_t = 1 / (1 + exp(-x))
+  # Logistic link function mapping state to probability
   p <- 1 / (1 + exp(-x))
+  p <- pmin(pmax(p, 1e-10), 1 - 1e-10) # Prevent log(0)
 
-  # Avoid numerical issues at p = 0 or 1
-  p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-
-  # Compute log-likelihood
-  loglik <- stats::dbinom(y, size = M, prob = p, log = TRUE)
-
-  return(sum(loglik)) # Return total log-likelihood
+  # Return the sum of log-densities
+  loglik <- stats::dbinom(datum, size = M, prob = p, log = TRUE)
+  return(sum(loglik))
 }
 #' @import stats

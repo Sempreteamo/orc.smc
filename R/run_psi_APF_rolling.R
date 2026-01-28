@@ -58,7 +58,7 @@ run_psi_APF_rolling <- function(data, t, psi_t, H_prev, model, init) {
   
   if (ESS < kappa * N) {
     ancestors <- resample(log_v)
-    cat('re at ', t)
+    #cat('re at ', t)
     logV <- rep(-log(N), N)  # Reset logV after resampling
     
   } else {

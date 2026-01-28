@@ -6,36 +6,20 @@
 #' @return Observations generated at the specific state
 #' @export
 #'
-simulate_observation_bin <- function(x_particles, M) {
-  
-  
-  if (!is.matrix(x_particles)) {
-    stop("x_particles must be a matrix: rows = particles, cols = dimensions")
-  }
-  
-  # Dimensions
-  n_particles <- nrow(x_particles)
-  dim_x <- ncol(x_particles)
-  
-  # Compute probabilities p = 1 / (1 + exp(-x))
-  p <- 1 / (1 + exp(-x_particles))
-  
-  # Clamp probabilities to avoid extremes
+simulate_observation_bin <- function(x, params) {
+  M <- params[[1]]
+
+  # Calculate success probability
+  p <- 1 / (1 + exp(-x))
   p <- pmin(pmax(p, 1e-10), 1 - 1e-10)
-  
-  # Expand M if scalar
-  if (length(M) == 1) {
-    M <- matrix(M, n_particles, dim_x)
-  } else if (length(M) == dim_x) {
-    M <- matrix(rep(M, each = n_particles), nrow = n_particles)
-  } else if (!all(dim(M) == dim(p))) {
-    stop("M must be scalar, vector of length = dimensions, or matrix matching x_particles.")
+
+  if (is.matrix(x)) {
+    # Return a matrix when input is a particle matrix (during filtering)
+    y_vals <- stats::rbinom(length(p), size = M, prob = as.vector(p))
+    return(matrix(y_vals, nrow = nrow(x), ncol = ncol(x)))
+  } else {
+    # Return a vector when input is a state vector (during sample_obs)
+    return(stats::rbinom(length(p), size = M, prob = p))
   }
-  
-  # Sample y ~ Bin(M, p) element-wise
-  y <- matrix(stats::rbinom(length(p), size = as.vector(M), prob = as.vector(p)), 
-              nrow = n_particles, ncol = dim_x)
-  
-  return(y)
 }
 #' @import stats

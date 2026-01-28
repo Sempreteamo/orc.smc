@@ -40,7 +40,7 @@ Orc_SMC <- function(lag, data, model, N) {
   H_tilde[[1]] <- list(X = X0, logW = w0, logZ = 0)
 
   for (t in 1:Time) {
-    print(t)
+    #print(t)
     t0 <- max(t - lag + 1, 1)
 
     # Step 3: Init pass with psi ≡ 1
