@@ -1,0 +1,157 @@
+---
+title: "Reproducing ORCSMC Experiments (Figure 4)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reproducing ORCSMC Experiments}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+This document provides a step-by-step guide to reproducing the experiments presented in the paper **"Online Rolling Controlled Sequential Monte Carlo" (Xue et al., 2025)**. 
+
+The ORCSMC algorithm extends Controlled Sequential Monte Carlo to an online setting using a rolling window mechanism. This vignette demonstrates its performance on a Multivariate Linear Gaussian Model (LG-SSM) where an analytical solution (Kalman Filter) is available as a benchmark.
+
+This section focuses on the reproduction of **Figure 4**, which evaluates the algorithm's ability to accurately capture the latent state distribution by comparing the standardized empirical marginals of the particles against the theoretical standard normal distribution across multiple dimensions.
+
+## Installation
+
+To install and load the `orc.smc` package:
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("Sempreteamo/orc.smc")
+library(orc.smc)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+```
+
+# Linear-Gaussian Model
+
+```{r}
+n_repeats <- 10  # You can change this number
+```
+
+--- 1. Simulation Setup ---
+```{r}
+Napf = N = 100 
+lag = 4       # Choose a sufficient lag for accurate smoothing
+Time = 10 
+d_list = c(2, 4, 8, 16)
+
+plot_list <- list()
+```
+
+
+## Non-diagonal Case
+
+```{r}
+for (d_ in d_list) {
+  
+  # --- 2. Model Specification ---
+  alpha = 0.415
+  tran_m <- matrix(nrow = d_, ncol = d_)
+  for (i in 1:d_) {
+    for (j in 1:d_) {
+      tran_m[i, j] = alpha^(abs(i - j) + 1)
+    }
+  }
+  
+  model <- list(
+    ini_mu = rep(0, d_), ini_cov = diag(1, d_),
+    tran_mu = tran_m, tran_cov = diag(1, d_),
+    obs_params = list(diag(1, d_), diag(1, d_)),
+    eval_likelihood = evaluate_likelihood_lg,
+    simu_observation = simulate_observation_lg,
+    parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+  )
+  
+  # Generate simulated observation data
+  set.seed(123)
+  obs_ <- sample_obs(model, Time, d_) 
+  
+  # --- 3. Algorithm Execution & Benchmarking ---
+  # Run ORCSMC silently
+  output <- Orc_SMC(lag, list(obs = obs_), model, Napf)
+
+  
+  # Compute Kalman Smoother ground truth
+  params_fkf <- list(
+    dt = matrix(0, d_, 1), ct = matrix(0, d_, 1), Tt = as.matrix(tran_m),
+    P0 = diag(1, d_), Zt = diag(1, d_), Ht = diag(1, d_), Gt = diag(1, d_), 
+    a0 = rep(0, d_), d = d_
+  )
+  filter_res <- compute_fkf(params_fkf, obs_)[[2]]
+  
+  # Extract smoothing mean and standard deviation for the first coordinate
+  fks_means <- filter_res$ahatt[1, ]
+  fks_sds   <- sqrt(filter_res$Vt[1, 1, ])
+  
+  # --- 4. Particle Standardization ---
+  list_of_dataframes <- list()
+  for (t in 1:Time) {
+    # Extract first coordinate values at time t
+    particle_values <- output$H_forward[[t + 1]]$X[, 1]
+    # Standardize: (Value - Mean) / SD
+    std_values <- (particle_values - fks_means[t]) / fks_sds[t]
+    
+    list_of_dataframes[[t]] <- data.frame(
+      value = std_values,
+      time = t
+    )
+  }
+  empirical_particles_df <- bind_rows(list_of_dataframes)
+  
+  # --- 5. Individual Subplot Generation ---
+  p <- ggplot() +
+    # Empirical density for each time step (thin skyblue lines)
+    geom_density(
+      data = empirical_particles_df,
+      aes(x = value, group = time, color = "Standardized Particles"),
+      linewidth = 0.1,
+      alpha = 0.5
+    ) +
+    # Standard Normal reference curve (solid red line)
+    stat_function(
+      fun = dnorm,
+      args = list(mean = 0, sd = 1),
+      aes(color = "Standard Normal"),
+      linewidth = 0.8
+    ) +
+    scale_color_manual(
+      name = "Distribution Type",
+      values = c("Standardized Particles" = "deepskyblue", "Standard Normal" = "red")
+    ) +
+    labs(title = paste("d =", d_)) +
+    xlim(-4, 4) +
+    theme_bw() +
+    theme(
+      axis.title = element_blank(),
+      legend.position = "none", 
+      plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
+      panel.grid.major = element_line(color = "grey90", linewidth = 0.2),
+      panel.grid.minor = element_blank()
+    )
+  
+  plot_list[[as.character(d_)]] <- p
+}
+```
+
+
+```{r}
+y_axis_label <- ggplot() + 
+  labs(y = "Density") + theme_void() + 
+  theme(axis.title.y = element_text(size = 14, angle = 90, face = "bold"))
+
+final_plot <- (y_axis_label + wrap_plots(plot_list, ncol = 3)) +
+  plot_layout(widths = c(0.05, 1), guides = "collect") +
+  plot_annotation(
+    caption = "Standardized Value",
+    theme = theme(plot.caption = element_text(size = 14, hjust = 0.5, face = "bold"))
+  ) & theme(legend.position = "bottom")
+
+print(final_plot)
+```
+

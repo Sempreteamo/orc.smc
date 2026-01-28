@@ -1,0 +1,117 @@
+---
+title: "Reproducing ORCSMC Experiments (Figure 6)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reproducing ORCSMC Experiments}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+This document provides a step-by-step guide to reproducing the experiments presented in the paper **"Online Rolling Controlled Sequential Monte Carlo" (Xue et al., 2025)**. 
+
+The ORCSMC algorithm extends Controlled Sequential Monte Carlo to an online setting using a rolling window mechanism. This vignette demonstrates its performance on a Multivariate Linear Gaussian Model (LG-SSM) where an analytical solution (Kalman Filter) is available as a benchmark.
+
+This section focuses on the reproduction of **Figure 7** by evaluating the ORCSMC algorithm's performance in a neuroscience-inspired binomial model, specifically comparing the stability of ESS over time and the accuracy of log-normalising constant estimates across different lags.
+
+## Installation
+
+To install and load the `orc.smc` package:
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("Sempreteamo/orc.smc")
+library(orc.smc)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+```
+
+# Neuroscience Model
+
+```{r}
+# 1. Model Parameters (Matching Figure 7 Setup)
+alpha_neuro <- 0.99
+sigma2_neuro <- 0.11
+M_neurons <- 50
+Time <- 10
+Napf <- 100
+lag_list <- c(2, 4)
+n_repeats <- 10
+```
+
+
+## Non-diagonal Case
+
+```{r}
+ 
+ model_bin <- list(
+  ini_mu = 0, 
+  ini_cov = as.matrix(1.0),
+  tran_mu = as.matrix(alpha_neuro), 
+  tran_cov = as.matrix(sigma2_neuro), 
+  obs_params = list(M = M_neurons),
+  eval_likelihood = evaluate_likelihood_bin,
+  simu_observation = simulate_observation_bin,
+  parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+)
+
+  #--- Execution ---
+  
+  set.seed(123)
+
+  # Simulate observations y_{1:T}
+  obs_data <- sample_obs(model_bin, Time, d = 1) 
+  
+  ess_df <- data.frame()
+  logz_df <- data.frame()
+  
+  #--- 4. ORCSMC Algorithm ---
+  ## --- INNER LOOP: Repetitions for the SAME obs_ ---
+  for (L in lag_list) {
+  #cat("Running Lag =", L, "\n")
+  for (i in 1:n_repeats) {
+    # Suppress internal output for cleaner execution
+    
+    res <- Orc_SMC(L, list(obs = obs_data), model_bin, Napf)
+    
+    
+    # Check if ESS was returned correctly to prevent the "0 row" error
+    if (!is.null(res$ess_history) && length(res$ess_history) == Time) {
+      if (i == 1) { # Only store one trajectory per Lag for the ESS plot
+        ess_df <- rbind(ess_df, data.frame(Time = 1:Time, ESS = res$ess_history, Lag = factor(L)))
+      }
+    }
+    
+    # Store LogZ for all repeats (for the boxplot)
+    logz_df <- rbind(logz_df, data.frame(Lag = factor(L, levels = lag_list), LogZ = res$logZ[Time]))
+  }
+}
+```
+
+
+```{r}
+# Plot (a): Evolution of ESS
+p_ess <- ggplot(ess_df, aes(x = Time, y = ESS, color = Lag)) +
+  geom_line(linewidth = 0.7) +
+  geom_hline(yintercept = Napf/2, linetype = "dashed", color = "grey50") +
+  scale_color_manual(values = c("2" = "#440154", "4" = "#31688e", "8" = "#35b779", "16" = "#fde725")) +
+  labs(title = "(a) Evolution of ESS over time.", x = "Time", y = "ESS") +
+  theme_minimal() + 
+  theme(legend.position = c(0.85, 0.25))
+
+# Plot (b): Log-normalising constant estimates
+p_logz <- ggplot(logz_df, aes(x = Lag, y = LogZ)) +
+  geom_boxplot(fill = "white", color = "black", outlier.shape = 1) +
+  labs(title = "(b) Log-normalising constant estimates.", x = "Lag (L)", y = "Log-normalising constant") +
+  theme_bw()
+
+# Combine with patchwork
+final_plot <- p_ess + p_logz + 
+  plot_annotation(title = "Figure 7: Univariate Binomial Model Performance", 
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold")))
+
+print(final_plot)
+```
+

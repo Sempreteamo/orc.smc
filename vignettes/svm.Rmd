@@ -1,0 +1,118 @@
+---
+title: "Reproducing ORCSMC Experiments (Figure 6)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reproducing ORCSMC Experiments}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+This document provides a step-by-step guide to reproducing the experiments presented in the paper **"Online Rolling Controlled Sequential Monte Carlo" (Xue et al., 2025)**. 
+
+The ORCSMC algorithm extends Controlled Sequential Monte Carlo to an online setting using a rolling window mechanism. This vignette demonstrates its performance on a Multivariate Linear Gaussian Model (LG-SSM) where an analytical solution (Kalman Filter) is available as a benchmark.
+
+This section focuses on the reproduction of **Figure 6**, which demonstrates the robustness of the ORCSMC algorithm in the non-linear and strongly heteroskedastic Stochastic Volatility Model (SVM) by showing that the variance of the log-marginal likelihood estimates decreases significantly as the rolling window length increases.
+
+## Installation
+
+To install and load the `orc.smc` package:
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("Sempreteamo/orc.smc")
+library(orc.smc)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+```
+
+# SV Model
+
+```{r}
+n_repeats <- 10  
+Time <- 10       
+Napf <- 100      
+lag_list <- c(2, 4, 8, 16)
+all_results_svm <- data.frame()
+```
+
+
+## Non-diagonal Case
+
+```{r}
+ 
+  #--- 2. Model Specification for current d---
+
+  # Construct the Transition Matrix 
+  alpha_svm <- 0.986
+  sigma_svm <- 0.13
+  beta_svm  <- 0.69
+  Time_svm  <- 945 # T = 945 observations 
+  
+  # Initial state variance: sigma^2 / (1 - alpha^2)
+  ini_var_svm <- sigma_svm^2 / (1 - alpha_svm^2)
+  
+  model_svm <- list(
+  ini_mu  = 0, 
+  ini_cov = as.matrix(ini_var_svm), 
+  tran_mu = as.matrix(alpha_svm), 
+  tran_cov = as.matrix(sigma_svm^2), 
+  # Ensure obs_params has at least 2 elements if your function uses params[[2]]
+  obs_params = list(beta = beta_svm, den_cov = beta_svm^2), 
+  eval_likelihood = evaluate_likelihood_svm,
+  
+  # CRITICAL FIX: Explicitly assign the function here
+  simu_observation = simulate_observation_svm, 
+  
+  parameters = list(k = 5, tau = 0.5, kappa = 0.5) 
+)
+  
+  #--- 3. Ground Truth Generation & Benchmarking (Fixed for the current d) ---
+  
+  set.seed(123)
+
+  # Simulate observations y_{1:T}
+  obs_ <- sample_obs(model_svm, Time, d = 1) 
+  
+  #--- 4. ORCSMC Algorithm ---
+  ## --- INNER LOOP: Repetitions for the SAME obs_ ---
+  for (current_lag in lag_list) {
+    #cat("  Testing Lag =", current_lag, "\n")
+    
+      for (rep_i in 1:n_repeats) {
+      output <- Orc_SMC(current_lag, list(obs = obs_), model_svm, Napf)
+      
+        #--- 5. Quantitative Evaluation ---
+        logZ_val <- output$logZ[Time]
+    
+        all_results_svm <- rbind(all_results_svm, data.frame(
+        Lag = factor(current_lag, levels = lag_list),
+        LogZ = logZ_val
+      ))
+    }
+  }
+
+
+
+```
+
+
+```{r}
+# Data Processing for Plot
+ggplot(all_results_svm, aes(x = Lag, y = LogZ)) +
+  geom_boxplot(fill = "skyblue", color = "darkblue", outlier.shape = 1) +
+  labs(
+    title = "Figure 6: Log-normalising Constant Estimates for SVM",
+    subtitle = paste("Demonstrating variance reduction as Lag increases"),
+    y = "Log-normalising constant estimate",
+    x = "Lag (L)"
+  ) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.title = element_text(size = 12)
+  )
+```
+

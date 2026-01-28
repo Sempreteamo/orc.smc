@@ -1,0 +1,96 @@
+---
+title: "simple-diagonal-case"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reproducing ORCSMC Experiments}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+This document provides a step-by-step guide to reproducing the experiments presented in the paper **"Online Rolling Controlled Sequential Monte Carlo" (Xue et al., 2025)**. 
+
+The ORCSMC algorithm extends Controlled Sequential Monte Carlo to an online setting using a rolling window mechanism. This vignette demonstrates its performance on a Multivariate Linear Gaussian Model (LG-SSM) where an analytical solution (Kalman Filter) is available as a benchmark.
+
+## Installation
+
+To install and load the `orc.smc` package:
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("Sempreteamo/orc.smc")
+library(orc.smc)
+```
+
+# Linear-Gaussian Model
+
+--- 1. Simulation Setup ---
+```{r}
+Napf = N = 100 # Number of particles (N)
+lag = 2 # Rolling window length (L)
+Time = 10 # Total time steps (T)
+d_ = 2 # State dimension
+```
+
+--- 2. Model Specification ---
+
+## Diagonal Case
+```{r}
+alpha = 0.415 # Correlation coefficient for the transition matrix
+
+ini <- rep(0, d_) # Initial state mean
+ini_c = diag(1, nrow = d_, ncol = d_) # Initial state covariance
+tran_m = diag(alpha, nrow = d_, ncol = d_) # State transition matrix
+tran_c = diag(1, nrow = d_, ncol = d_) # State transition noise covariance
+obs_m = diag(1, nrow = d_, ncol = d_) # Observation matrix
+obs_c = diag(1, nrow = d_, ncol = d_) # Observation noise covariance
+
+# ORCSMC specific hyperparameters
+parameters_ <- list(k = 5, tau = 0.5, kappa = 0.5)
+obs_p <- list(obs_mean = obs_m, obs_cov = obs_c)
+
+# Model structure including likelihood and simulation functions
+model <- list(
+  ini_mu = ini, ini_cov = ini_c, 
+  tran_mu = tran_m, tran_cov = tran_c, 
+  obs_params = obs_p,
+  eval_likelihood = evaluate_likelihood_lg, # Evaluates p(y_t | x_t)
+  simu_observation = simulate_observation_lg, 
+  parameters = parameters_
+)
+```
+
+--- 3. Ground Truth Generation & Benchmarking ---
+```{r}
+set.seed(1234)
+
+# Simulate observations y_{1:T}
+obs_ <- sample_obs(model, Time, d_) 
+
+# Setup parameters for Fast Kalman Filter (FKF)
+params <- list(
+  dt = matrix(0, d_, 1), ct = matrix(0, d_, 1), Tt = as.matrix(tran_m), 
+  P0 = ini_c, Zt = obs_m, Ht = tran_c, Gt = obs_c, a0 = ini, d = d_
+)
+
+# Compute the analytical solution using FKF
+filter <- compute_fkf(params, obs_)
+fkf_obj <- filter[[1]]
+```
+
+--- 4. ORCSMC Algorithm ---
+```{r}
+data_ = data <- list(obs = obs_)
+
+output <- Orc_SMC(lag, data, model, Napf)
+```
+
+--- 5. Quantitative Evaluation ---
+```{r}
+# A ratio close to 1 indicates that ORCSMC successfully learned the optimal 
+# proposal distribution
+ratio <- compute_ratio(output$logZ[Time], fkf_obj)
+```
+
+

@@ -1,0 +1,161 @@
+---
+title: "Reproducing ORCSMC Experiments (Figure 3)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reproducing ORCSMC Experiments}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+This document provides a step-by-step guide to reproducing the experiments presented in the paper **"Online Rolling Controlled Sequential Monte Carlo" (Xue et al., 2025)**. 
+
+The ORCSMC algorithm extends Controlled Sequential Monte Carlo to an online setting using a rolling window mechanism. This vignette demonstrates its performance on a Multivariate Linear Gaussian Model (LG-SSM) where an analytical solution (Kalman Filter) is available as a benchmark.
+
+This section focuses on the reproduction of **Figure 3**, which illustrates the relationship between the rolling window length (Lag) and the approximation error, demonstrating that the Root Mean Square Error (RMSE) of the normalizing constant estimates decays as the lag increases across all considered dimensions.
+
+## Installation
+
+To install and load the `orc.smc` package:
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("Sempreteamo/orc.smc")
+library(orc.smc)
+library(dplyr)
+library(ggplot2)
+```
+
+# Linear-Gaussian Model
+
+```{r}
+n_repeats <- 10  # You can change this number
+```
+
+--- 1. Simulation Setup ---
+```{r}
+Napf = N = 100 # Number of particles (N)
+lag_list = c(2, 4) # Rolling window length (L)
+Time = 10 # Total time steps (T)
+d_list = c(2, 4) # State dimension
+
+# Data frame to store all results
+all_results <- data.frame()
+```
+
+
+## Non-diagonal Case
+
+```{r}
+for (d_ in d_list) {
+  #cat("\nProcessing Dimension d =", d_, "...\n")
+  
+  #--- 2. Model Specification for current d---
+
+  # Construct the Transition Matrix 
+  alpha = 0.415 # Correlation coefficient for the transition matrix
+  
+  tran_m <- matrix(nrow = d_, ncol = d_)
+  for (i in 1:d_){
+    for (j in 1:d_){
+      tran_m[i,j] = alpha^(abs(i-j) + 1)
+    }
+  }
+  
+  ini <- rep(0, d_) # Initial state mean
+  ini_c = diag(1, nrow = d_, ncol = d_) # Initial state covariance
+  tran_c = diag(1, nrow = d_, ncol = d_) # State transition noise covariance
+  obs_m = diag(1, nrow = d_, ncol = d_) # Observation matrix
+  obs_c = diag(1, nrow = d_, ncol = d_) # Observation noise covariance
+  
+  # ORCSMC specific hyperparameters
+  parameters_ <- list(k = 5, tau = 0.5, kappa = 0.5)
+  obs_p <- list(obs_mean = obs_m, obs_cov = obs_c)
+  
+  # Model structure including likelihood and simulation functions
+  model <- list(
+    ini_mu = ini, ini_cov = ini_c, 
+    tran_mu = tran_m, tran_cov = tran_c, 
+    obs_params = obs_p,
+    eval_likelihood = evaluate_likelihood_lg, # Evaluates p(y_t | x_t)
+    simu_observation = simulate_observation_lg, 
+    parameters = parameters_
+  )
+  
+  #--- 3. Ground Truth Generation & Benchmarking (Fixed for the current d) ---
+  
+  set.seed(123)
+
+  # Simulate observations y_{1:T}
+  obs_ <- sample_obs(model, Time, d_) 
+  
+  # Setup parameters for Fast Kalman Filter (FKF)
+  params <- list(
+    dt = matrix(0, d_, 1), ct = matrix(0, d_, 1), Tt = as.matrix(tran_m), 
+    P0 = ini_c, Zt = obs_m, Ht = tran_c, Gt = obs_c, a0 = ini, d = d_
+  )
+  
+  # Compute the analytical solution using FKF
+  filter <- compute_fkf(params, obs_)
+  fkf_obj <- filter[[1]]
+  
+  #--- 4. ORCSMC Algorithm ---
+  ## --- INNER LOOP: Repetitions for the SAME obs_ ---
+  for (current_lag in lag_list) {
+    #cat("  Testing Lag =", current_lag, "\n")
+    
+      for (rep_i in 1:n_repeats) {
+      output <- Orc_SMC(current_lag, list(obs = obs_), model, Napf)
+      
+        #--- 5. Quantitative Evaluation ---
+        # --- Calculate Ratio between the analytical and empirical normalizing constant ---
+      # A ratio close to 1 indicates that ORCSMC successfully learned the optimal 
+      # proposal distribution
+      ratio_val <- compute_ratio(output$logZ[Time], fkf_obj)
+      
+      # Store result
+     all_results <- rbind(all_results, data.frame(
+        Dimension = as.numeric(d_),
+        Lag = as.numeric(current_lag),
+        Ratio = ratio_val
+      ))
+      
+    }
+  }
+
+}
+
+```
+
+--- Compute RMSE and Plot (Replicating Figure 3) ---
+```{r}
+# Calculate RMSE per Dimension and Lag
+rmse_summary <- all_results %>%
+  group_by(Dimension, Lag) %>%
+  summarize(
+    # RMSE = sqrt( mean( (Ratio - 1)^2 ) )
+    # Since the ideal ratio is 1.0
+    RMSE = sqrt(mean((Ratio - 1)^2)),
+    .groups = 'drop'
+  )
+```
+
+```{r}
+ggplot(rmse_summary, aes(x = Lag, y = RMSE, color = factor(Dimension), shape = factor(Dimension))) +
+  geom_line() +
+  geom_point(size = 3) +
+  labs(
+    title = "Figure 3: RMSE of Relative Normalising Constant Estimate",
+    subtitle = "Approximation error decays with increasing Lag (L)",
+    x = "Lag",
+    y = "RMSE",
+    color = "Dimension",
+    shape = "Dimension"
+  ) +
+  theme_bw() +
+  scale_x_continuous(breaks = lag_list)
+```
+
+
+

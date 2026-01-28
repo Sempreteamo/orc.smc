@@ -1,0 +1,149 @@
+---
+title: "Reproducing ORCSMC Experiments (Figure 5)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reproducing ORCSMC Experiments}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+This document provides a step-by-step guide to reproducing the experiments presented in the paper **"Online Rolling Controlled Sequential Monte Carlo" (Xue et al., 2025)**. 
+
+The ORCSMC algorithm extends Controlled Sequential Monte Carlo to an online setting using a rolling window mechanism. This vignette demonstrates its performance on a Multivariate Linear Gaussian Model (LG-SSM) where an analytical solution (Kalman Filter) is available as a benchmark.
+
+This section focuses on the reproduction of **Figure 5**, which evaluates the convergence of the particle approximations to the true smoothing marginals by analyzing the Wasserstein-1 distance ($L_1$-error) across multiple dimensions and time steps ($t=1, T/2, T$) as a function of the rolling window length .
+
+## Installation
+
+To install and load the `orc.smc` package:
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("Sempreteamo/orc.smc")
+library(orc.smc)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+```
+
+# Linear-Gaussian Model
+
+```{r}
+n_repeats <- 10  # You can change this number
+```
+
+--- 1. Simulation Setup ---
+```{r}
+
+Time <- 10
+Napf <- 100
+d_list <- c(2, 4, 8)
+lag_list <- c(2, 4, 8) 
+
+all_l1_results <- data.frame()
+```
+
+```{r}
+# Function to compute W1 distance between particles and a Normal distribution
+# For 1D, W1 = mean(|sorted_particles - quantile_of_target|)
+calc_w1 <- function(particles, true_mean, true_sd) {
+  n <- length(particles)
+  sorted_p <- sort(particles)
+  # Quantiles of the target Gaussian distribution
+  target_q <- qnorm(seq(1/(n+1), n/(n+1), length.out = n), mean = true_mean, sd = true_sd)
+  return(mean(abs(sorted_p - target_q)))
+}
+```
+
+## Non-diagonal Case
+
+```{r}
+for (d_ in d_list) {
+  
+  # --- 2. Model Specification ---
+  alpha = 0.415
+  tran_m <- matrix(nrow = d_, ncol = d_)
+  for (i in 1:d_) {
+    for (j in 1:d_) {
+      tran_m[i, j] = alpha^(abs(i - j) + 1)
+    }
+  }
+  
+  model <- list(
+    ini_mu = rep(0, d_), ini_cov = diag(1, d_),
+    tran_mu = tran_m, tran_cov = diag(1, d_),
+    obs_params = list(diag(1, d_), diag(1, d_)),
+    eval_likelihood = evaluate_likelihood_lg,
+    simu_observation = simulate_observation_lg,
+    parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+  )
+  
+  # Generate simulated observation data
+  set.seed(123)
+  obs_ <- sample_obs(model, Time, d_) 
+  
+  # Get Kalman Smoother truth
+  params_fkf <- list(dt=matrix(0,d_,1), ct=matrix(0,d_,1), Tt=as.matrix(tran_m),
+                     P0=diag(1,d_), Zt=diag(1,d_), Ht=diag(1,d_), Gt=diag(1,d_), 
+                     a0=rep(0,d_), d=d_)
+  filter_res <- compute_fkf(params_fkf, obs_)[[2]]
+  
+    # --- 3. Algorithm Execution & Benchmarking ---
+  for (current_lag in lag_list) {
+    for (r in 1:n_repeats) {
+      output <- Orc_SMC(current_lag, list(obs = obs_), model, Napf)
+      
+      # Calculate L1 error at t=1, t=T/2, t=T
+      test_times <- c(1, floor(Time/2), Time)
+      
+      for (t in test_times) {
+        p_vals <- output$H_forward[[t + 1]]$X[, 1] # First coordinate
+        m_t <- filter_res$ahatt[1, t]
+        s_t <- sqrt(filter_res$Vt[1, 1, t])
+        
+        err <- calc_w1(p_vals, m_t, s_t)
+        
+        all_l1_results <- rbind(all_l1_results, data.frame(
+          d = d_,
+          lag = current_lag,
+          rep = r,
+          Time_Point = ifelse(t==1, "1", ifelse(t==Time, "T", "T/2")),
+          Value = err
+        ))
+      }
+    }
+  }
+}
+```
+
+
+```{r}
+# Data Processing for Plot
+plot_data <- all_l1_results %>%
+  mutate(
+    Metric = factor(Time_Point, levels = c("1", "T/2", "T")),
+    d_label = factor(paste("d =", d), levels = paste("d =", d_list)),
+    lag = factor(lag)
+  )
+```
+
+```{r}
+# Final Figure 5 Plot
+ggplot(plot_data, aes(x = lag, y = Value, fill = Metric)) +
+  geom_boxplot(outlier.shape = 1, outlier.size = 1.5, outlier.colour = "red") +
+  facet_wrap(~ d_label, scales = "free_y", ncol = 2) +
+  scale_fill_manual(
+    values = c("1" = "#FF7F50", "T/2" = "#32CD32", "T" = "#4682B4")
+  ) +
+  labs(
+    title = "Figure 5: L1-error (Wasserstein-1) Convergence",
+    x = "Lag",
+    y = "Wasserstein-1 distance",
+    fill = "Time"
+  ) +
+  theme_bw() +
+  theme(legend.position = "bottom", strip.background = element_rect(fill = "grey95"))
+```
+
