@@ -3,11 +3,11 @@ Type: Package
 Title: R package for online rolling controlled SMC
 Version: 0.1.0
 Author: Liwen Xue, Axel Finke and Adam Johansen 
-Maintainer: Liwen Xue <xlw1477520168@gmail.com>
+Maintainer: The package maintainer <yourself@somewhere.net>
 Description: This package provides tools for online, rolling controlled Sequential Monte Carlo (SMC) methods, enabling particle simulation and robust estimation for normalising constant estimates in dynamic systems where parameters or models may evolve over time. It's designed for scenarios requiring real-time adaptation and control of the SMC process.
 License: GPL-3
 Encoding: UTF-8
-LazyData: true
 Imports: mvnfast, FKF
-RoxygenNote: 7.3.2
-
+RoxygenNote: 7.3.3
+NeedsCompilation: no
+Packaged: 2025-07-24 23:22:25 UTC; lexie
