@@ -12,53 +12,7 @@
 #' @return A list containing logZ estimates, filtering means, ESS history, and lag evolution.
 #' @importFrom stats rnorm
 #' @export
-adaptative_Orc_SMC <- function(L_max, K_max, R, eps_K, eps_L, data, model, N) {
-  obs <- data$obs
-  Time <- nrow(obs)
-  d <- ncol(obs)
-
-  # --- Initialization ---
-  # Note: ensure initial particles match your model's init distribution
-  X0 <- matrix(rnorm(N * d), nrow = N, ncol = d)
-  w0 <- rep(log(1/N), N)
-
-  logZ_vec <- numeric(Time)
-  ess_history <- numeric(Time)
-  t0_history <- numeric(Time) # Added to track lag for your Plot 1
-
-  # Storage: psi_pa columns depend on model (e.g., 2*d for LGM means/vars)
-  filtering_estimates <- matrix(NA, Time, d)
-  psi_pa <- matrix(NA, Time + 1, 2 * d)
-
-  H <- vector('list', Time + 1)
-  H_tilde <- vector('list', Time + 1)
-
-  H[[1]] <- list(X = X0, logW = w0, logZ = 0)
-  H_tilde[[1]] <- list(X = X0, logW = w0, logZ = 0)
-
-  calc_xi <- function(psi_old, psi_new) {
-    if(any(is.na(psi_old)) || any(is.na(psi_new))) return(Inf)
-    max(abs(psi_old - psi_new), na.rm = TRUE)
-  }
-
-  t0 <- 1
-
-  # --- Sequential Loop ---
-  for (t in 1:Time) {
-    # [CORRECTION] Capture psi BEFORE any updates in this time step (Algorithm 5 Line 15)
-    psi_pa_initial_step <- psi_pa
-
-    # Initial pass at current time t
-    output <- run_psi_APF_rolling(data, t, psi_pa[t, ], H[[t]], model, init = TRUE)
-    H_tilde[[t+1]] <- output$H
-
-    # --- Policy Refinement ---
-    Kt <- 0
-    consecutive_stable <- 0
-
-    while(Kt < K_max && consecutive_stable < R) {
-      Kt <- Kt + 1
-      psi_pa_old_iter <- psi_pa
+#' Adaptive Online Rolling Controlled Sequential Monte Carlo (Algorithm 5)
 
       # Backward pass: t down to t0
       for (s in t:t0) {
@@ -119,5 +73,7 @@ adaptative_Orc_SMC <- function(L_max, K_max, R, eps_K, eps_L, data, model, N) {
     t0_history = t0_history
   ))
 }
+#' @import stats
+#' @import rnorm
 #' @import stats
 #' @import rnorm
