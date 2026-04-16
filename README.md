@@ -27,9 +27,9 @@ library(orc.smc)
 
 ## --- 1. Simulation Setup ---
 
-Napf = N = 100 # Number of particles (N)
-lag = 2 # Rolling window length (L)
-Time = 10 # Total time steps (T)
+Napf = N = 1000 # Number of particles (N)
+lag = 4 # Rolling window length (L)
+Time = 100 # Total time steps (T)
 d_ = 2 # State dimension
 
 # Construct the Transition Matrix 
