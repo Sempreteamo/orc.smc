@@ -18,7 +18,7 @@ adaptative_Orc_SMC <- function(L_max, K_max, R, eps_K, eps_L, data, model, N) {
   d <- ncol(obs)
   
   # --- Initialization ---
-  # Note: ensure initial particles match your model's init distribution
+  # Note: ensure initial particles match model's init distribution
   X0 <- matrix(rnorm(N * d), nrow = N, ncol = d)
   w0 <- rep(log(1/N), N)
   
