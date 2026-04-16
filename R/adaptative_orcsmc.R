@@ -24,7 +24,7 @@ adaptative_Orc_SMC <- function(L_max, K_max, R, eps_K, eps_L, data, model, N) {
   
   logZ_vec <- numeric(Time)
   ess_history <- numeric(Time)
-  t0_history <- numeric(Time) # Added to track lag for your Plot 1
+  t0_history <- numeric(Time) 
   
   # Storage: psi_pa columns depend on model (e.g., 2*d for LGM means/vars)
   filtering_estimates <- matrix(NA, Time, d)
@@ -45,7 +45,7 @@ adaptative_Orc_SMC <- function(L_max, K_max, R, eps_K, eps_L, data, model, N) {
   
   # --- Sequential Loop ---
   for (t in 1:Time) {
-    # [CORRECTION] Capture psi BEFORE any updates in this time step (Algorithm 5 Line 15)
+    
     psi_pa_initial_step <- psi_pa
     
     # Initial pass at current time t
@@ -67,7 +67,7 @@ adaptative_Orc_SMC <- function(L_max, K_max, R, eps_K, eps_L, data, model, N) {
       
       # Forward pass: t0 to t
       for (s in t0:t) {
-        # [CORRECTION] When s=t0, we MUST start from the fixed history H
+        
         prev_state <- if(s == t0) H[[s]] else H_tilde[[s]]
         output <- run_psi_APF_rolling(data, s, psi_pa[s,, drop = FALSE], prev_state, model, init = FALSE)
         H_tilde[[s+1]] <- output$H
@@ -88,8 +88,7 @@ adaptative_Orc_SMC <- function(L_max, K_max, R, eps_K, eps_L, data, model, N) {
       H[[s+1]] <- output$H
     }
     
-    # [CORRECTION] Fill filtering estimates using weighted mean of particles
-    # This is essential for your MSE calculations
+    
     current_W <- exp(H[[t+1]]$logW - max(H[[t+1]]$logW))
     current_W <- current_W / sum(current_W)
     filtering_estimates[t, ] <- colSums(H[[t+1]]$X * as.vector(current_W))
@@ -100,7 +99,7 @@ adaptative_Orc_SMC <- function(L_max, K_max, R, eps_K, eps_L, data, model, N) {
     # --- Lag Adaptation ---
     t_prime_0 <- t
     for(s in t0:t) {
-      # Compare against the snapshot taken at the very start of step t
+      
       dist_L <- calc_xi(psi_pa[s,], psi_pa_initial_step[s,])
       if(dist_L > eps_L) {
         t_prime_0 <- s
