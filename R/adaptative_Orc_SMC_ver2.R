@@ -23,7 +23,7 @@ adaptative_Orc_SMC <- function(B_max, K_min, K_max, K1, gamma, data, model, N1) 
   Kt <- K1
   Nt <- N1
   
-  # 初始化 H
+ 
   H[[1]] <- H_tilde[[1]] <- list(
     X = matrix(0, Nt, d), 
     logW = rep(-log(Nt), Nt), 
