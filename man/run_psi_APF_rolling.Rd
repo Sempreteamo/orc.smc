@@ -4,7 +4,7 @@
 \alias{run_psi_APF_rolling}
 \title{Function of psi_APF}
 \usage{
-run_psi_APF_rolling(data, t, psi_t, H_prev, model, init)
+run_psi_APF_rolling(data, t, psi_t, H_prev, model, init, target_N)
 }
 \arguments{
 \item{data}{List containing required data information on which to run the filter}
@@ -18,6 +18,8 @@ run_psi_APF_rolling(data, t, psi_t, H_prev, model, init)
 \item{model}{A list containing information of model}
 
 \item{init}{Index to decide whether the algorithm is at its initialized block}
+
+\item{target_N}{Check whether the number of particles change during the iteration}
 }
 \value{
 A list containing:

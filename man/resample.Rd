@@ -4,10 +4,12 @@
 \alias{resample}
 \title{Function to resample}
 \usage{
-resample(logW, mode = "res")
+resample(logW, target_N = NULL, mode = "res")
 }
 \arguments{
 \item{logW}{Log weights}
+
+\item{target_N}{Check whether the number of particles change during the iteration}
 
 \item{mode}{Which resampling scheme to use. Now we support multivariate resampling and residual resampling.}
 }

@@ -10,20 +10,25 @@
 #' @export
 #'
 optimize_psi <- function(x, lfn){
-  params <- vector()
-  d <- dim(as.matrix(x))[2]
 
+  x <- as.matrix(x)
+  d <- ncol(x)
+  
+  fit_df <- data.frame(x2 = x^2, x = x)
+  coef <- -stats::lm(lfn ~ ., data = fit_df)$coefficients
+  
 
-  coef <- -stats::lm(lfn~., data.frame(cbind(x^2, x)))$coefficients
   a <- coef[2:(1+d)]
   b <- coef[(2+d):length(coef)]
-
-  if (any(a == 0)) {
-    a <- a +  1e-10
+  
+  
+  if (any(a == 0, na.rm = TRUE)) {
+    a[a == 0] <- 1e-10
   }
-
+  
+  
   params <- c(b/(-2*a), 1/(2*a))
-
+  
   return(params)
 }
 #' @import stats
