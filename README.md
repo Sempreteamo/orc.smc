@@ -119,7 +119,8 @@ library(patchwork)
 # --- 0. DATASET CONFIGURATION (User: Define your file paths here) ---
 # To reproduce the plots, replace these filenames with your own generated datasets.
 DATA_PATHS <- list(
-  neuro_1d = "bin_N1000T100_d1_lag2-16_rep100.csv",
+  rmse_data = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
+  neuro_1d  = "bin_N1000T100_d1_lag2-16_rep100.csv",
   neuro_ess = "bin_ess_1d_l2-16.csv",
   neuro_nd  = "bin_N1000T100_d2-64_lag2-16_rep100.csv",
   svm_data  = "bpf+orc_N200_d1_lag2-16_svm_rep100.csv",
@@ -192,6 +193,39 @@ p <- ggplot(plot_data, aes(x = plot_group, y = x)) +
 print(p)
 dev.off()
 
+# ##############################################################################
+#### Figure 3 ####
+# ##############################################################################
+# Analysis of RMSE with Bootstrap Confidence Intervals
+combined_df_all <- read.csv(DATA_PATHS$rmse_data)
+orc_df <- combined_df_all %>% filter(method == "orc")
+
+rmse_boot <- function(data, indices) {
+  d_val <- data[indices] 
+  sqrt(mean((d_val - 1)^2))
+}
+
+summary_df <- orc_df %>%
+  group_by(d, lag) %>%
+  summarise(
+    rmse = sqrt(mean((x - 1)^2)),
+    boot_obj = list(boot(x, rmse_boot, R = 1000)),
+    ci_low = quantile(boot_obj[[1]]$t, 0.025, na.rm = TRUE),
+    ci_high = quantile(boot_obj[[1]]$t, 0.975, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  mutate(x_label = factor(lag, levels = c(2, 3, 4, 5, 8, 16)))
+
+tikz("rmse.tex", width = 6, height = 3.75, sanitize = TRUE)
+p <- ggplot(summary_df, aes(x = x_label, y = rmse, color = as.factor(d))) +
+  geom_point(aes(shape = as.factor(d)), position = position_dodge(width = 0.5), size = 3) +
+  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.2, position = position_dodge(width = 0.5)) +
+  labs(x = "Lag $L$", y = "RMSE of relative \n normalising constant estimate", color = "Dimension", shape = "Dimension") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 8), axis.title = element_text(size = 10), panel.grid.minor = element_blank()) +
+  scale_color_viridis_d()
+print(p)
+dev.off()
 
 # ##############################################################################
 #### Figure 4 ####
