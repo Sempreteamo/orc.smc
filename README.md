@@ -292,6 +292,14 @@ logz_df <- read.csv(DATA_PATHS$neuro_1d) %>%
 p_ess <- ggplot(ess_df_long, aes(x = Time, y = ESS, color = Lag)) +
   geom_line(linewidth = 0.7) + 
   geom_hline(yintercept = 500, linetype = "dashed") +
+  geom_text(
+    aes(x = 98, y = 525, label = "Resampling ($N/2$)"), 
+    color = "gray50",   
+    size = 3,            
+    hjust = 1,           
+    vjust = 0,           
+    inherit.aes = FALSE  
+  ) +
   scale_color_viridis_d(option = "viridis") + 
   labs(x = "Time step", y = "ESS")
 
