@@ -90,7 +90,7 @@ adaptative_Orc_SMC <- function(B_max, K_min, K_max, K1, gamma, data, model, N1) 
         prev_block_coeff <- t(apply(psi_before_k[t0:t, , drop=FALSE], 1, psi_to_coeff))
         
         # Calculate metric \xi for updating \kappa
-        xi_k_array[k] <- mean(abs(curr_block_coeff - prev_block_coeff) / 
+        xi_k_array[k] <- mean(2*abs(curr_block_coeff - prev_block_coeff) / 
                                 (abs(curr_block_coeff) + abs(prev_block_coeff) + 1e-8))
       }
     }
@@ -124,7 +124,7 @@ adaptative_Orc_SMC <- function(B_max, K_min, K_max, K1, gamma, data, model, N1) 
       curr_coeff <- psi_to_coeff(psi_pa[idx_s, ])
       prev_coeff <- psi_to_coeff(psi_prev_t[idx_s, ])
       
-      xi_b <- mean(abs(curr_coeff - prev_coeff) / 
+      xi_b <- mean(2*abs(curr_coeff - prev_coeff) / 
                      (abs(curr_coeff) + abs(prev_coeff) + 1e-8))
       beta[b] <- 0.8 * beta[b] + 0.1 * xi_b
     }
