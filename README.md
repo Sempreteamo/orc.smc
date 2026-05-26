@@ -266,7 +266,7 @@ plot_data$lag <- factor(plot_data$lag, levels = c(2, 4, 8, 16))
 
 theme_set(theme_bw())
 
-tikz("svm.tex", width = 5, height = 3.75, sanitize = FALSE)
+tikz("svm.tex", width = 4, height = 2.5, sanitize = FALSE)
 p <- ggplot(plot_data, aes(x = lag, y = value)) +
   geom_boxplot() + 
   labs(x = "Lag $L$", y = "Log-normalising constant estimate") 
