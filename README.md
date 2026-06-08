@@ -269,7 +269,7 @@ theme_set(theme_bw())
 tikz("svm.tex", width = 4, height = 2.5, sanitize = FALSE)
 p <- ggplot(plot_data, aes(x = lag, y = value)) +
   geom_boxplot() + 
-  labs(x = "Lag $L$", y = "Log-normalising constant \n estimates") 
+  labs(x = "Lag $L$", y = "Log-normalising constant \n estimates \n") 
 print(p)
 dev.off()
 
@@ -286,30 +286,31 @@ ess_df_long <- read.csv(DATA_PATHS$neuro_ess) %>%
 
 logz_df <- read.csv(DATA_PATHS$neuro_1d) %>% 
   rename(LogZ = x) %>%          
-  select(-X) %>%                # 
+  select(-X) %>%                
   mutate(Lag = factor(Lag, levels = c(2, 4, 8, 16)))
 
 p_ess <- ggplot(ess_df_long, aes(x = Time, y = ESS, color = Lag)) +
   geom_line(linewidth = 0.7) + 
   geom_hline(yintercept = 500, linetype = "dashed") +
-  geom_text(
-    aes(x = 98, y = 525, label = "Resampling ($N/2$)"), 
-    color = "gray50",   
-    size = 3,            
-    hjust = 1,           
-    vjust = 0,           
-    inherit.aes = FALSE  
-  ) +
   scale_color_viridis_d(option = "viridis") + 
   labs(x = "Time step", y = "ESS")
 
 p_logz <- ggplot(logz_df, aes(x = Lag, y = LogZ)) +
   geom_boxplot(outlier.shape = 1) + 
-  labs(x = "Lag $L$", y = "Log-normalising constant")
+  labs(
+    x = "Lag $L$", 
+    y = "Log-normalising constant \n estimates \n"
+  )
 
-tikz("neuro.tex", width = 6.75, height = 3, sanitize = FALSE)
-print(p_ess + p_logz + plot_layout(ncol = 2))
+
+tikz("neuro_ess.tex", width = 3.3, height = 3, sanitize = FALSE)
+print(p_ess)
 dev.off()
+
+tikz("neuro_logz.tex", width = 3.3, height = 3, sanitize = FALSE)
+print(p_logz)
+dev.off()
+
 
 # ##############################################################################
 #### Figure 7 ####
