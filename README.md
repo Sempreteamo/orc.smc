@@ -269,7 +269,7 @@ theme_set(theme_bw())
 tikz("svm.tex", width = 4, height = 2.5, sanitize = FALSE)
 p <- ggplot(plot_data, aes(x = lag, y = value)) +
   geom_boxplot() + 
-  labs(x = "Lag $L$", y = "Log-normalising constant estimate") 
+  labs(x = "Lag $L$", y = "Log-normalising constant \n estimates") 
 print(p)
 dev.off()
 
