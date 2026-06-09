@@ -239,12 +239,13 @@ df_l1 <- read.csv(DATA_PATHS$l1_error) %>%
     Time_Factor = factor(Time_Raw, levels = c("X1", "T.2", "T"))
   )
 
-theme_set(theme_bw())
-
 tikz("l1_error.tex", width = 6, height = 3.75, sanitize = FALSE)
 
 p <- ggplot(df_l1, aes(x = lag, y = Value, fill = Time_Factor)) +
-  geom_boxplot(outlier.shape = 1, outlier.size = 1.2) +
+  geom_boxplot(
+    outlier.shape = 19, 
+    outlier.size = 0.5
+  ) +
   scale_fill_grey(start = 0.7, end = 0.9, labels = c("X1" = "$1$", "T.2" = "$T/2$", "T" = "$T$")) +
   facet_wrap(~d, nrow = 2, ncol = 3, scales = "free_y", 
              labeller = as_labeller(c("2"="$d=2$","4"="$d=4$","8"="$d=8$","16"="$d=16$","32"="$d=32$","64"="$d=64$"))) +
@@ -268,8 +269,8 @@ theme_set(theme_bw())
 
 tikz("svm.tex", width = 4, height = 2.5, sanitize = FALSE)
 p <- ggplot(plot_data, aes(x = lag, y = value)) +
-  geom_boxplot() + 
-  labs(x = "Lag $L$", y = "Log-normalising constant \n estimates \n") 
+  geom_boxplot(outlier.size = 0.5) + 
+  labs(x = "Lag $L$", y = "Log-normalising constant \n estimate \n") 
 print(p)
 dev.off()
 
@@ -296,10 +297,10 @@ p_ess <- ggplot(ess_df_long, aes(x = Time, y = ESS, color = Lag)) +
   labs(x = "Time step", y = "ESS")
 
 p_logz <- ggplot(logz_df, aes(x = Lag, y = LogZ)) +
-  geom_boxplot(outlier.shape = 1) + 
+  geom_boxplot(outlier.shape = 19, outlier.size = 0.5) + 
   labs(
     x = "Lag $L$", 
-    y = "Log-normalising constant \n estimates \n"
+    y = "Log-normalising constant \n estimate \n"
   )
 
 
@@ -322,7 +323,7 @@ df_neuro_nd <- read.csv(DATA_PATHS$neuro_nd) %>% rename(LogZ = x) %>% select(-X)
 theme_set(theme_bw())
 
 p <- ggplot(df_neuro_nd, aes(x = lag, y = LogZ)) +
-  geom_boxplot() + 
+  geom_boxplot(outlier.shape = 19, outlier.size = 0.5) + 
   facet_wrap(~d, nrow = 2, ncol = 3, scales = "free_y", 
              labeller = as_labeller(c("2"="$d=2$","4"="$d=4$","8"="$d=8$","16"="$d=16$","32"="$d=32$","64"="$d=64$"))) +
   labs(x = "Lag $L$", y = "Log-normalising constant estimate") +
