@@ -332,3 +332,49 @@ p <- ggplot(df_neuro_nd, aes(x = lag, y = LogZ)) +
 tikz("multivariate_logz.tex", width = 6, height = 3.5, sanitize = FALSE)
 print(p)
 dev.off()
+
+# ##############################################################################
+#### Figure 8 ####
+# ##############################################################################
+plot_data <- df_diag_nd %>%
+  filter(d %in% c(2, 4, 8, 16, 32, 64)) %>%
+  filter(method %in% c("orc", "bpf")) %>%  
+  mutate(
+    plot_group = case_when(
+      method == "orc" ~ "\\begin{tabular}{c}Adaptive\\\\ORCSMC\\end{tabular}",
+      method == "bpf" ~ "BPF",
+      TRUE ~ method
+    ),
+    plot_group = factor(plot_group, levels = c("\\begin{tabular}{c}Adaptive\\\\ORCSMC\\end{tabular}", "BPF")),
+    
+   
+    d_label = factor(
+      paste0("$d=", d, "$"),
+      levels = paste0("$d=", c(2,4,8,16,32,64), "$")
+    )
+  )
+
+
+plot_data$x <- as.numeric(plot_data$x)
+
+
+tikz("diag_nd_only_orc_bpf.tex", width = 5, height = 3.75, sanitize = FALSE)
+
+p <- ggplot(plot_data, aes(x = plot_group, y = x)) +
+  geom_boxplot(outlier.size = 0.5) +
+  facet_wrap(~ d_label, ncol = 3, scales = "fixed") +
+  coord_cartesian(ylim = c(0, 2)) + 
+  labs(
+    x = 'Method',
+    y = "Relative normalising constant estimate"
+  ) +
+  theme_bw() +
+  
+  theme(
+    axis.text.x = element_text(margin = margin(t = 8, r = 0, b = 0, l = 0)),
+    axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0))
+  )
+
+print(p)
+dev.off()
+
