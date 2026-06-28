@@ -94,9 +94,39 @@ output <- Orc_SMC(lag, data, model, Napf)
 ratio <- compute_ratio(output$logZ[Time], fkf_obj)
 ```
 
+## Example 2: Fully Adaptive ORC-SMC with Benchmarking
+
+This section extends the basic model to showcase the **Fully Adaptive ORCSMC** algorithm. It dynamically adjusts the rolling window ($B_t$), the number of learning steps ($K_t$), and the particle swarm size ($N_t$) based on the computational budget $\gamma$. 
+
+``` r
+## (Assuming the Model Specification and FKF setup from Example 1 have been run)
+
+## --- 1. Adaptive Algorithm Hyperparameters ---
+B_max <- 5        # Maximum rolling window length
+K_min <- 1        # Minimum learning iterations
+K_max <- 5        # Maximum learning iterations
+K1    <- 2        # Initial K at t=1
+gamma <- 10000    # Computational budget parameter
+N1    <- floor(gamma / (1 * (K1 + 1))) # Initial number of particles
+
+output <- adaptative_Orc_SMC(
+      B_max = B_max, 
+      K_min = K_min, 
+      K_max = K_max, 
+      K1    = K1, 
+      gamma = gamma, 
+      data  = data_, 
+      model = model, 
+      N1    = N1
+    )
+
+ratio_vec_orc <- compute_ratio(output$logZ[Time], fkf_obj)
+```
+
 ## Figure Reproduction
 
 This script reproduces the figures from "Online Rolling Controlled Sequential Monte Carlo" (Xue et al.) using synthetic data generated from experimental functions.
+
 
 ``` r
 # ==============================================================================
