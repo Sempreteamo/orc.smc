@@ -105,9 +105,9 @@ adaptative_Orc_SMC <- function(B_max, K_min, K_max, K1, gamma, data, model, N1) 
       H[[s+1]] <- out_H$H
     }
     
-    #Set \kappa_k <- 0.9\kappa_k + 0.1(\xi(...) - \kappa_k)
+    #Set \kappa_k <- \kappa_k + 0.1(\xi(...) - \kappa_k)
     if (Kt > 0) {
-      for (k in 1:Kt) kappa[k] <- 0.8 * kappa[k] + 0.1 * xi_k_array[k]
+      for (k in 1:Kt) kappa[k] <- 0.9 * kappa[k] + 0.1 * xi_k_array[k]
     }
     CK <- which(diff(kappa[1:K_max]) > 0) + 1
     
@@ -115,7 +115,7 @@ adaptative_Orc_SMC <- function(B_max, K_min, K_max, K1, gamma, data, model, N1) 
     Kt_next <- if (length(CK) > 0) min(CK[CK >= K_min & CK <= K_max]) else K_max
     
     
-    #Set \beta_b <- 0.9\beta_b + 0.1(\xi(...) - \beta_b)
+    #Set \beta_b <- \beta_b + 0.1(\xi(...) - \beta_b)
     for (b in 1:Bt) {
       idx_s <- t - b + 1
       if (idx_s < 1) next
@@ -126,7 +126,7 @@ adaptative_Orc_SMC <- function(B_max, K_min, K_max, K1, gamma, data, model, N1) 
       
       xi_b <- mean(2*abs(curr_coeff - prev_coeff) / 
                      (abs(curr_coeff) + abs(prev_coeff) + 1e-8))
-      beta[b] <- 0.8 * beta[b] + 0.1 * xi_b
+      beta[b] <- 0.9 * beta[b] + 0.1 * xi_b
     }
     CB <- which(diff(beta[1:B_max]) > 0) + 1
     
@@ -140,7 +140,7 @@ adaptative_Orc_SMC <- function(B_max, K_min, K_max, K1, gamma, data, model, N1) 
     K_hist[t] <- Kt; B_hist[t] <- Bt; N_hist[t] <- Nt
     
     #N_{t+1} := floor(gamma / (B_{t+1} * (K_{t+1} + 1)))
-    Nt_next <- floor(gamma / (Bt_next * (Kt_next + 1)))
+    Nt_next <- floor(gamma / (1 + Bt_next * (Kt_next + 1)))
     #Nt_next <- max(Nt_next, 150) 
    
     #approximations
