@@ -1,0 +1,93 @@
+library(orc.smc)
+
+
+Time  <- 1000 
+d_    <- 2  
+alpha <- 0.415 
+
+tran_m <- matrix(nrow = d_, ncol = d_)
+for (i in 1:d_){
+  for (j in 1:d_){
+    tran_m[i,j] = alpha^(abs(i-j) + 1)
+  }
+}
+
+# 
+ini_c  <- diag(1, d_, d_) 
+tran_c <- diag(1, d_, d_) 
+obs_m  <- diag(1, d_, d_) 
+obs_c  <- diag(1, d_, d_) 
+
+model <- list(
+  ini_mu = rep(0, d_), ini_cov = ini_c, 
+  tran_mu = tran_m, tran_cov = tran_c, 
+  obs_params = list(obs_mean = obs_m, obs_cov = obs_c),
+  eval_likelihood = evaluate_likelihood_lg, 
+  simu_observation = simulate_observation_lg, 
+  parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+)
+
+set.seed(1234)
+obs_ <- sample_obs(model, Time, d_) 
+data_ <- list(obs = obs_)
+
+#df <- read.csv("data_2500N100T100d64.csv", skip = 1, header = FALSE)
+#obs_ <- as.matrix(df)  
+
+data_ <- list(obs = obs_)
+data_$obs <- as.matrix(data_$obs)
+
+params_fkf <- list(
+  dt = matrix(0, d_, 1), ct = matrix(0, d_, 1), Tt = as.matrix(tran_m), 
+  P0 = ini_c, Zt = obs_m, Ht = tran_c, Gt = obs_c, a0 = rep(0, d_), d = d_
+)
+fkf_obj <- compute_fkf(params_fkf, obs_)[[1]]
+
+# ==========================================
+# 修改区域：根据 Axel 的邮件要求更新超参数上限
+# ==========================================
+B_max <- 30        # 将 B (block size) 的最大值放宽到 30
+K_min <- 1         
+K_max <- 10        # 将 K (number of iterations) 的最大值放宽到 10
+K1    <- 2         
+
+gamma <- 10000     
+
+# 根据要求，运行 10 次独立实验 (multiple independent runs)
+num_repeats <- 10  
+ratio_vec_orc   <- numeric(num_repeats)
+ratio_vec_bpf <- numeric(num_repeats)
+history_list <- list()
+
+for (i in 1:num_repeats) {
+  cat(paste0("正在运行第 ", i, " 次全自适应实验... "))
+  
+  
+    output <- adaptative_Orc_SMC(
+      B_max = B_max, 
+      K_min = K_min, 
+      K_max = K_max, 
+      K1    = 2, 
+      gamma = gamma, 
+      data  = data_, 
+      model = model, 
+      N1    = floor(gamma / (1 * (2 + 1))) 
+    )
+  
+  
+  df_rep <- data.frame(
+    Time = 1:Time,
+    K    = output$K_history,  
+    B    = output$B_history,  
+    N    = output$N_history,  
+    Rep  = i                  
+  )
+  
+  history_list[[i]] <- df_rep
+  
+  ratio_vec_orc[i] <- compute_ratio(output$logZ[Time], fkf_obj)
+  
+  avg_N <- mean(sapply(output$H_forward[-1], function(h) nrow(h$X)))
+  cat(paste0("完成。平均 Ratio: ", round(ratio_vec_orc[i], 4), 
+             " | 运行期平均粒子数: ", round(avg_N, 1), "\n"))
+}
