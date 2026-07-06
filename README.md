@@ -157,7 +157,8 @@ DATA_PATHS <- list(
   l1_error  = "l1error_orc_N1000T100_d2-64_lag2_16_rep100.csv",
   diag_nd   = "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv",
   nc_comp   = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
-  df_diag_nd = "adaptive_orc_bpf_10000T100d2-64.csv"
+  df_diag_nd = "adaptive_orc_bpf_10000T100d2-64.csv",
+  history_list = "history_list"
 )
 
 # ##############################################################################
@@ -366,6 +367,53 @@ dev.off()
 
 # ##############################################################################
 #### Figure 8 ####
+# ##############################################################################
+
+history_list <- read.csv(DATA_PATHS$history_list)
+
+df_all_history <- bind_rows(history_list)
+
+df_summary <- df_all_history %>%
+  group_by(Time) %>%
+  summarise(
+    mean_K = mean(K, na.rm = TRUE),
+    min_K  = min(K, na.rm = TRUE),
+    max_K  = max(K, na.rm = TRUE),
+    mean_B = mean(B, na.rm = TRUE),
+    min_B  = min(B, na.rm = TRUE),
+    max_B  = max(B, na.rm = TRUE),
+    mean_N = mean(N, na.rm = TRUE),
+    min_N  = min(N, na.rm = TRUE),
+    max_N  = max(N, na.rm = TRUE)
+  )
+
+theme_set(theme_bw() + theme(panel.grid.minor = element_blank()))
+
+p_K <- ggplot(df_summary, aes(x = Time)) +
+  geom_ribbon(aes(ymin = min_K, ymax = max_K), fill = "gray90") +
+  geom_line(aes(y = mean_K), color = "black", linewidth = 0.8) +
+  labs(x = NULL, y = "$K_t$") + 
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+p_B <- ggplot(df_summary, aes(x = Time)) +
+  geom_ribbon(aes(ymin = min_B, ymax = max_B), fill = "gray90") +
+  geom_line(aes(y = mean_B), color = "black", linewidth = 0.8) +
+  labs(x = NULL, y = "$B_t$") + # 仅保留符号
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+p_N <- ggplot(df_summary, aes(x = Time)) +
+  geom_ribbon(aes(ymin = min_N, ymax = max_N), fill = "gray90") +
+  geom_line(aes(y = mean_N), color = "black", linewidth = 0.8) +
+  labs(x = "Time step $t$ when $d = 2$", y = "$N_t$") # 仅保留符号
+
+tikz("adaptive_convergence2.tex", width = 5.5, height = 5.5, sanitize = FALSE)
+
+grid.arrange(p_K, p_B, p_N, ncol = 1, heights = c(1, 1, 1.1))
+
+dev.off()
+
+# ##############################################################################
+#### Figure 9 ####
 # ##############################################################################
 df_diag_nd <- read.csv(DATA_PATHS$df_diag_nd)
 plot_data <- df_diag_nd %>%
