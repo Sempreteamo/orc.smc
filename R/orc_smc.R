@@ -40,14 +40,14 @@ Orc_SMC <- function(lag, data, model, N) {
   H_tilde[[1]] <- list(X = X0, logW = w0, logZ = 0)
 
   for (t in 1:Time) {
-    print(t)
+   
     t0 <- max(t - lag + 1, 1)
 
     # Step 3: Init pass with psi ≡ 1
     #psi_pa[t, ] <- rep(NA, 2*d)
     #psi_pa[t+1, ] <- rep(NA, 2*d)
 
-    output <- run_psi_APF_rolling(data, t,  psi_pa[t, ] , H_tilde[[t]] , model, init = TRUE)
+    output <- run_psi_APF_rolling(data, t,  psi_pa[t, ] , H_tilde[[t]] , model, init = TRUE, target_N = N)
     H_tilde[[t+1]] <- output$H
 
     # Step 4: Policy Refinement
@@ -64,7 +64,7 @@ Orc_SMC <- function(lag, data, model, N) {
 
       for (s in t0:t) {
         output <- run_psi_APF_rolling(data, s,
-                          psi_pa[s,, drop = FALSE], H_tilde[[s]], model, init = FALSE)
+                          psi_pa[s,, drop = FALSE], H_tilde[[s]], model, init = FALSE, target_N = N)
 
         H_tilde[[s+1]] <- output$H
 
@@ -76,7 +76,7 @@ Orc_SMC <- function(lag, data, model, N) {
     for (s in t0:t) {
 
       output <- run_psi_APF_rolling(data, s,
-                            psi_pa[s,, drop = FALSE], H[[s]], model, init = FALSE)
+                            psi_pa[s,, drop = FALSE], H[[s]], model, init = FALSE, target_N = N)
 
       H[[s+1]] <- output$H
       if(s == t){
