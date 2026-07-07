@@ -1,3 +1,17 @@
+#' Bootstrap Particle Filter (BPF) implementation
+#'
+#' This function implements a standard Bootstrap Particle Filter to estimate the log-marginal 
+#' likelihood of a Linear-Gaussian State-Space Model.
+#'
+#' @param data A list containing the observed data, specifically an element `obs` of size [Time x d].
+#' @param model A list containing model parameters (initial mean/cov, transition mean/cov) 
+#' and functions for likelihood evaluation and observation simulation.
+#' @param N The number of particles to use in the filter.
+#'
+#' @return A list containing the estimated log-marginal likelihood `logZ` at the final time step.
+#' 
+#' @importFrom mvnfast rmvn
+#' @export
 run_bpf <- function(data, model, N) {
   Time <- nrow(data$obs)
   d <- length(model$ini_mu)
