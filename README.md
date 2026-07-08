@@ -199,11 +199,11 @@ d_values <- c(2, 4, 8, 16, 32, 64); lag_values <- c(2, 4, 8, 16)
 
 plot_data <- df %>%
   filter(d %in% d_values) %>%
-  filter((method == "orc" & lag %in% lag_values) | method %in% c("iapf", "bpf")) %>%
+  filter((method == "orc" & lag %in% lag_values) | method %in% c("csmc", "bpf")) %>%
   mutate(
     plot_group = factor(case_when(
       method == "orc" ~ paste0("ORCSMC(", lag, ")"),
-      method == "iapf" ~ "CSMC",
+      method == "csmc" ~ "CSMC",
       method == "bpf" ~ "BPF",
       TRUE ~ method), levels = c(paste0("ORCSMC(", lag_values, ")"), "CSMC", "BPF")),
     d_label = factor(paste0("$d=", d, "$"), levels = paste0("$d=", d_values, "$"))
