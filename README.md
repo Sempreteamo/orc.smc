@@ -317,7 +317,6 @@ for (d in d_values) {
                      a0=rep(0,d), d=d)
   filter_res <- compute_fkf(params_fkf, obs_)[[2]]
   
-  # 运行 ORC-SMC
   for (l_char in lag_values) {
     lag_val <- as.numeric(l_char)
     
