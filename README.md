@@ -124,6 +124,7 @@ ratio_vec_orc <- compute_ratio(output$logZ[Time], fkf_obj)
 ```
 
 ## Experiment for Figure 2
+The experiment is repeated 50 times。
 ``` r
 d_values   <- c(2, 4, 8, 16, 32, 64)
 lag_values <- c("2", "4", "8", "16") 
@@ -150,7 +151,8 @@ for (d in d_values) {
     simu_observation = simulate_observation_lg,
     parameters = list(k = 5, tau = 0.5, kappa = 0.5)
   )
-  
+
+  set.seed(1234)
   obs_   <- sample_obs(model, Time, d)
   data_  <- list(obs = obs_)
   
