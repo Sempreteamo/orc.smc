@@ -422,6 +422,79 @@ write.csv(fig,'bpf+orc_N200_d1_lag2-16_svm_rep100.csv', row.names = FALSE)
 
 ```
 
+## Experiment for Figure 6
+
+``` r
+library(dplyr)
+library(tidyr)
+
+alpha_neuro  <- 0.99
+sigma2_neuro <- 0.11
+M_neurons    <- 50
+Time         <- 100
+Napf         <- 1000
+lag_list     <- c(2, 4, 8, 16) 
+d_values     <- c(2, 4, 8, 16, 32, 64)
+n_repeats    <- 50  
+
+#d = 1
+model_1d <- list(
+  ini_mu           = 0, 
+  ini_cov          = as.matrix(1.0),
+  tran_mu          = as.matrix(alpha_neuro), 
+  tran_cov         = as.matrix(sigma2_neuro), 
+  obs_params       = M_neurons,
+  eval_likelihood  = evaluate_likelihood_bin,
+  simu_observation = simulate_observation_bin,
+  parameters       = list(k = 5, tau = 0.5, kappa = 0.5)
+)
+
+
+set.seed(1234)
+obs_data <- sample_obs(model_1d, Time, d = 1)
+ess_data<- list(
+  X = 1:Time, 
+  Time = 1:Time
+)
+logz_df <- data.frame()
+
+for (L in lag_list) {
+  #cat("Running Lag =", L, "\n")
+  for (i in 1:n_repeats) {
+    # Suppress internal output for cleaner execution
+    
+    res <- Orc_SMC(L, list(obs = obs_data), model_1d, Napf)
+    
+    
+    # Check if ESS was returned correctly to prevent the "0 row" error
+    if (!is.null(res$ess_history) && length(res$ess_history) == Time) {
+      if (i == 1) { # Only store one trajectory per Lag for the ESS plot
+        col_name <- paste0("l", L)
+        ess_data[[col_name]] <- res$ess_history
+      }
+    }
+    
+    # Store LogZ for all repeats (for the boxplot)
+    logz_df <- rbind(logz_df, data.frame(LogZ = res$logZ[Time], Lag = factor(L, levels = lag_list)))
+  }
+}
+
+logz_df$X <- 1:nrow(logz_df)
+neuro_1d <- logz_df %>%
+  
+  mutate(
+    X = 1:n(),
+    x = LogZ
+  ) %>%
+  
+  select(X, x, Lag)
+
+ess <- as.data.frame(ess_data)
+
+write.csv(ess, "bin_ess_1d_l2-16.csv", row.names = FALSE)
+write.csv(neuro_1d, "bin_N1000T100_d1_lag2-16_rep100.csv", row.names = FALSE)
+```
+
 ## Figure Reproduction
 
 This script reproduces the figures from "Online Rolling Controlled Sequential Monte Carlo" (Xue et al.) using synthetic data generated from experimental functions.
