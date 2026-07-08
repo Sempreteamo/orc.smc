@@ -368,6 +368,60 @@ head(fig)
 write.csv(fig,"l1error_orc_N1000T100_d2-64_lag2_16_rep100.csv", row.names = FALSE)
 ```
 
+## Experiment for Figure 5
+The experiment is repeated 50 times
+``` r
+alpha_svm  <- 0.986
+sigma_svm  <- 0.13
+beta_svm   <- 0.69
+Time_svm   <- 945
+N_particles <- 200 
+n_repeats   <- 50  
+
+ini_var_svm <- sigma_svm^2 / (1 - alpha_svm^2)
+
+model_svm <- list(
+  ini_mu  = 0, 
+  ini_cov = as.matrix(ini_var_svm), 
+  tran_mu = as.matrix(alpha_svm), 
+  tran_cov = as.matrix(sigma_svm^2), 
+  obs_params = list(beta = beta_svm, den_cov = beta_svm^2), 
+  eval_likelihood = evaluate_likelihood_svm,
+  simu_observation = simulate_observation_svm, 
+  parameters = list(k = 5, tau = 0.5, kappa = 0.5) 
+)
+
+set.seed(123)
+obs_svm <- sample_obs(model_svm, Time_svm, d = 1)
+data_svm <- list(obs = obs_svm)
+
+lag_values <- c(2, 4, 8, 16)
+results_list <- list()
+
+for (l_val in lag_values) {
+  for (r in 1:n_repeats) {
+    
+    output <- Orc_SMC(l_val, data_svm, model_svm, N_particles)
+    
+    val <- output$logZ[Time_svm]
+    
+    
+    results_list[[length(results_list) + 1]] <- data.frame(
+      value = val,
+      method = "ORCSMC",
+      lag = l_val
+    )
+  }
+}
+
+
+fig <- do.call(rbind, results_list)
+
+head(fig)
+write.csv(fig,'bpf+orc_N200_d1_lag2-16_svm_rep100.csv', row.names = FALSE)
+
+```
+
 ## Figure Reproduction
 
 This script reproduces the figures from "Online Rolling Controlled Sequential Monte Carlo" (Xue et al.) using synthetic data generated from experimental functions.
