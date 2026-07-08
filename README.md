@@ -280,6 +280,96 @@ write.csv(final_df, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
 
 
 ```
+
+## Experiment for Figure 4
+
+``` r
+library(dplyr)
+library(tidyr)
+
+# --- 参数设定 ---
+d_values     <- c(2, 4, 8, 16, 32, 64)
+lag_values   <- c("2", "4", "8", "16") 
+Napf         <- 1000  
+Time         <- 100
+alpha        <- 0.415
+n_repeats    <- 50 
+
+all_results <- list()
+
+for (d in d_values) {
+  
+  tran_m <- matrix(0, d, d)
+  for (i in 1:d) for (j in 1:d) tran_m[i, j] <- alpha^(abs(i - j) + 1)
+  
+  model <- list(
+    ini_mu = rep(0, d), ini_cov = diag(1, d),
+    tran_mu = tran_m, tran_cov = diag(1, d),
+    obs_params = list(obs_mean = diag(1, d), obs_cov = diag(1, d)),
+    eval_likelihood = evaluate_likelihood_lg,
+    simu_observation = simulate_observation_lg,
+    parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+  )
+  
+  set.seed(1234)
+  obs_ <- sample_obs(model, Time, d)
+  params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(tran_m),
+                     P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), 
+                     a0=rep(0,d), d=d)
+  filter_res <- compute_fkf(params_fkf, obs_)[[2]]
+  
+  # 运行 ORC-SMC
+  for (l_char in lag_values) {
+    lag_val <- as.numeric(l_char)
+    
+    for (r in 1:n_repeats) {
+      output <- Orc_SMC(lag_val, list(obs = obs_), model, Napf)
+      
+      # Calculate L1 error at t=1, t=T/2, t=T
+      test_times <- c(1, floor(Time/2), Time)
+      
+      for (t in test_times) {
+        p_vals <- output$H_forward[[t + 1]]$X[, 1] # First coordinate
+        m_t <- filter_res$ahatt[1, t]
+        s_t <- sqrt(filter_res$Vt[1, 1, t])
+        
+        calc_w1 <- function(particles, true_mean, true_sd) {
+          n <- length(particles)
+          sorted_p <- sort(particles)
+          # Quantiles of the target Gaussian distribution
+          target_q <- qnorm(seq(1/(n+1), n/(n+1), length.out = n), mean = true_mean, sd = true_sd)
+          return(mean(abs(sorted_p - target_q)))
+        }
+        
+        err <- calc_w1(p_vals, m_t, s_t)
+        
+        all_results <- rbind(all_results, data.frame(
+          d = d,
+          lag = lag_val,
+          rep = r,
+          Time_Point = ifelse(t==1, "1", ifelse(t==Time, "T", "T/2")),
+          Value = err
+        ))
+      }
+    }
+  }
+}
+
+long_df <- bind_rows(all_results)
+
+fig <- long_df %>%
+  group_by(d, lag, rep, Time_Point) %>%
+  summarise(Value = mean(Value), .groups = 'drop') %>%
+  pivot_wider(names_from = Time_Point, values_from = Value) %>%
+  rename(X1 = `1`, T.2 = `T/2`, T = `T`)
+
+fig <- fig %>% select(X1, T.2, T, d, lag)
+
+head(fig)
+
+write.csv(fig,"l1error_orc_N1000T100_d2-64_lag2_16_rep100.csv", row.names = FALSE)
+```
+
 ## Figure Reproduction
 
 This script reproduces the figures from "Online Rolling Controlled Sequential Monte Carlo" (Xue et al.) using synthetic data generated from experimental functions.
