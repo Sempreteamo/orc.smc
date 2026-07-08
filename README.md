@@ -200,7 +200,7 @@ write.csv(final_df, "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv", row.n
 
 ```
 
-## Experiment for Figure 2
+## Experiment for Figure 2 and 3
 The experiment is repeated 50 times。
 ``` r
 d_values   <- c(2, 4, 8, 16, 32, 64)
@@ -306,14 +306,13 @@ library(patchwork)
 # --- 0. DATASET CONFIGURATION (User: Define your file paths here) ---
 # To reproduce the plots, replace these filenames with your own generated datasets.
 DATA_PATHS <- list(
-  rmse_data = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
   neuro_1d  = "bin_N1000T100_d1_lag2-16_rep100.csv",
   neuro_ess = "bin_ess_1d_l2-16.csv",
   neuro_nd  = "bin_N1000T100_d2-64_lag2-16_rep100.csv",
   svm_data  = "bpf+orc_N200_d1_lag2-16_svm_rep100.csv",
   l1_error  = "l1error_orc_N1000T100_d2-64_lag2_16_rep100.csv",
   diag_nd   = "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv",
-  nc_comp   = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
+  nc_comp   = rmse_data = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
   df_diag_nd = "adaptive_orc_bpf_10000T100d2-64.csv",
   history_list = "history_list"
 )
