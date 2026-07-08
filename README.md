@@ -124,7 +124,7 @@ ratio_vec_orc <- compute_ratio(output$logZ[Time], fkf_obj)
 ```
 
 ## Experiment for Figure 1
-The experiment is repeated 50 times。
+The experiment is repeated 50 times
 ``` r
 d_values   <- c(2, 4, 8, 16, 32, 64)
 lag_values <- c("2", "4", "8", "16") 
@@ -201,7 +201,7 @@ write.csv(final_df, "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv", row.n
 ```
 
 ## Experiment for Figure 2 and 3
-The experiment is repeated 50 times。
+The experiment is repeated 50 times
 ``` r
 d_values   <- c(2, 4, 8, 16, 32, 64)
 lag_values <- c("2", "4", "8", "16") 
@@ -287,7 +287,6 @@ write.csv(final_df, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
 library(dplyr)
 library(tidyr)
 
-# --- 参数设定 ---
 d_values     <- c(2, 4, 8, 16, 32, 64)
 lag_values   <- c("2", "4", "8", "16") 
 Napf         <- 1000  
