@@ -123,6 +123,83 @@ output <- adaptative_Orc_SMC(
 ratio_vec_orc <- compute_ratio(output$logZ[Time], fkf_obj)
 ```
 
+## Experiment for Figure 1
+The experiment is repeated 50 times。
+``` r
+d_values   <- c(2, 4, 8, 16, 32, 64)
+lag_values <- c("2", "4", "8", "16") 
+Napf       <- 1000  
+N_bpf      <- 320000 
+Time       <- 100
+alpha      <- 0.415
+K_iterations <- 5
+
+results_list <- list()
+
+
+for (d in d_values) {
+  
+  model <- list(
+    ini_mu = rep(0, d), ini_cov = diag(1, d),
+    tran_mu = diag(1, d), tran_cov = diag(1, d),
+    obs_params = list(obs_mean = diag(1, d), obs_cov = diag(1, d)),
+    eval_likelihood = evaluate_likelihood_lg,
+    simu_observation = simulate_observation_lg,
+    parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+  )
+  
+  set.seed(1234)
+  obs_   <- sample_obs(model, Time, d)
+  data_  <- list(obs = obs_)
+  
+  
+  params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(model$tran_mu),
+                     P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
+  fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
+  
+  #run orcsmc#
+  for (l_char in lag_values) {
+    lag_val <- as.numeric(l_char)
+    output  <- Orc_SMC(lag_val, data_, model, Napf)
+    x_val   <- compute_ratio(output$logZ[Time], fkf_logZ)
+    
+    results_list[[length(results_list) + 1]] <- data.frame(
+      X = NA, x = x_val, d = d, lag = l_char, method = "orc"
+    )
+  }
+  
+  #run bpf#
+  output_bpf <- run_bpf(data = data_, model, N = N_bpf)
+  x_val_bpf  <- compute_ratio(output_bpf$logZ, fkf_logZ)
+  
+  results_list[[length(results_list) + 1]] <- data.frame(
+    X = NA, x = x_val_bpf, d = d, lag = "none", method = "bpf"
+  )
+  
+  #run csmc#
+  output_iapf <- run_CSMC(data = data_, Napf = Napf, K = K_iterations, model = model)
+  
+  
+  x_val_iapf <- compute_ratio(output_iapf$logZ_final, fkf_logZ)
+  
+  
+  results_list[[length(results_list) + 1]] <- data.frame(
+    X = NA, x = x_val_iapf, d = d, lag = "none", method = "csmc"
+  )
+}
+
+
+final_df <- bind_rows(results_list)
+
+final_df$X <- 1:nrow(final_df)
+
+head(final_df)
+
+write.csv(final_df, "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv", row.names = FALSE)
+
+
+```
+
 ## Experiment for Figure 2
 The experiment is repeated 50 times。
 ``` r
@@ -248,8 +325,8 @@ DATA_PATHS <- list(
 df_diag_nd <- read.csv(DATA_PATHS$diag_nd)
 plot_data <- df_diag_nd %>%
   filter(d %in% c(2, 4, 8, 16, 32, 64)) %>%
-  filter((method == "orc" & lag %in% c(2, 4, 8, 16)) | method %in% c("iapf", "bpf")) %>%
-  mutate(plot_group = factor(case_when(method == "orc" ~ paste0("ORCSMC(", lag, ")"), method == "iapf" ~ "CSMC", method == "bpf" ~ "BPF", TRUE ~ method), levels = c("ORCSMC(2)", "ORCSMC(4)", "ORCSMC(8)", "ORCSMC(16)", "CSMC", "BPF")),
+  filter((method == "orc" & lag %in% c(2, 4, 8, 16)) | method %in% c("csmc", "bpf")) %>%
+  mutate(plot_group = factor(case_when(method == "orc" ~ paste0("ORCSMC(", lag, ")"), method == "csmc" ~ "CSMC", method == "bpf" ~ "BPF", TRUE ~ method), levels = c("ORCSMC(2)", "ORCSMC(4)", "ORCSMC(8)", "ORCSMC(16)", "CSMC", "BPF")),
          d_label = factor(paste0("$d=", d, "$"), levels = paste0("$d=", c(2, 4, 8, 16, 32, 64), "$")))
 
 plot_data$x <- as.numeric(as.character(plot_data$x))
