@@ -123,6 +123,84 @@ output <- adaptative_Orc_SMC(
 ratio_vec_orc <- compute_ratio(output$logZ[Time], fkf_obj)
 ```
 
+## Experiment for Figure 2
+``` r
+d_values   <- c(2, 4, 8, 16, 32, 64)
+lag_values <- c("2", "4", "8", "16") 
+Napf       <- 1000  
+N_bpf      <- 320000 
+Time       <- 100
+alpha      <- 0.415
+K_iterations <- 5
+
+results_list <- list()
+
+
+for (d in d_values) {
+  
+  
+  tran_m <- matrix(0, d, d)
+  for (i in 1:d) for (j in 1:d) tran_m[i, j] <- alpha^(abs(i - j) + 1)
+  
+  model <- list(
+    ini_mu = rep(0, d), ini_cov = diag(1, d),
+    tran_mu = tran_m, tran_cov = diag(1, d),
+    obs_params = list(obs_mean = diag(1, d), obs_cov = diag(1, d)),
+    eval_likelihood = evaluate_likelihood_lg,
+    simu_observation = simulate_observation_lg,
+    parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+  )
+  
+  obs_   <- sample_obs(model, Time, d)
+  data_  <- list(obs = obs_)
+  
+  
+  params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(tran_m),
+                     P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
+  fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
+  
+
+  for (l_char in lag_values) {
+    lag_val <- as.numeric(l_char)
+    output  <- Orc_SMC(lag_val, data_, model, Napf)
+    x_val   <- compute_ratio(output$logZ[Time], fkf_logZ)
+    
+    results_list[[length(results_list) + 1]] <- data.frame(
+      X = NA, x = x_val, d = d, lag = l_char, method = "orc"
+    )
+  }
+  
+
+  output_bpf <- run_bpf(data = data_, model, N = N_bpf)
+  x_val_bpf  <- compute_ratio(output_bpf$logZ, fkf_logZ)
+  
+  results_list[[length(results_list) + 1]] <- data.frame(
+    X = NA, x = x_val_bpf, d = d, lag = "none", method = "bpf"
+  )
+  
+  
+  output_iapf <- run_CSMC(data = data_, Napf = Napf, K = K_iterations, model = model)
+  
+  
+  x_val_iapf <- compute_ratio(output_iapf$logZ_final, fkf_logZ)
+  
+  
+  results_list[[length(results_list) + 1]] <- data.frame(
+    X = NA, x = x_val_iapf, d = d, lag = "none", method = "csmc"
+  )
+}
+
+
+final_df <- bind_rows(results_list)
+
+final_df$X <- 1:nrow(final_df)
+
+head(final_df)
+
+write.csv(final_df, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv", row.names = FALSE)
+
+
+```
 ## Figure Reproduction
 
 This script reproduces the figures from "Online Rolling Controlled Sequential Monte Carlo" (Xue et al.) using synthetic data generated from experimental functions.
