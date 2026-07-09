@@ -584,8 +584,7 @@ DATA_PATHS <- list(
   l1_error  = "l1error_orc_N1000T100_d2-64_lag2_16_rep100.csv",
   diag_nd   = "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv",
   nc_comp   = rmse_data = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
-  df_diag_nd = "adaptive_orc_bpf_10000T100d2-64.csv",
-  history_list = "history_list"
+  df_diag_nd = "adaptive_orc_bpf_10000T100d2-64.csv"
 )
 
 # ##############################################################################
@@ -795,8 +794,6 @@ dev.off()
 # ##############################################################################
 #### Figure 8 ####
 # ##############################################################################
-
-history_list <- read.csv(DATA_PATHS$history_list)
 
 df_all_history <- bind_rows(history_list)
 
