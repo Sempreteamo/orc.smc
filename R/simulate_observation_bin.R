@@ -10,7 +10,7 @@ simulate_observation_bin <- function(x_particles, M) {
   
   
   if (!is.matrix(x_particles)) {
-    stop("x_particles must be a matrix: rows = particles, cols = dimensions")
+    x_particles <- as.matrix(x_particles)
   }
   
   # Dimensions
