@@ -678,7 +678,7 @@ for(d_ in d_values){
       method = "orc", 
       d = d_
     )
-    output_bpf <- run_bpf(data = data_, model = model, N = 42000)
+    output_bpf <- run_bpf(data = data_, model = model, N = 41000)
     ratio_val_bpf <- compute_ratio(output_bpf$logZ, fkf_logZ)
     
     
@@ -971,13 +971,13 @@ p_K <- ggplot(df_summary, aes(x = Time)) +
 p_B <- ggplot(df_summary, aes(x = Time)) +
   geom_ribbon(aes(ymin = min_B, ymax = max_B), fill = "gray90") +
   geom_line(aes(y = mean_B), color = "black", linewidth = 0.8) +
-  labs(x = NULL, y = "$B_t$") + # 仅保留符号
+  labs(x = NULL, y = "$B_t$") + 
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 
 p_N <- ggplot(df_summary, aes(x = Time)) +
   geom_ribbon(aes(ymin = min_N, ymax = max_N), fill = "gray90") +
   geom_line(aes(y = mean_N), color = "black", linewidth = 0.8) +
-  labs(x = "Time step $t$ when $d = 2$", y = "$N_t$") # 仅保留符号
+  labs(x = "Time step $t$ when $d = 2$", y = "$N_t$") 
 
 tikz("adaptive_convergence2.tex", width = 5.5, height = 5.5, sanitize = FALSE)
 
