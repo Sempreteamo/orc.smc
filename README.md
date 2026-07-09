@@ -495,6 +495,62 @@ write.csv(ess, "bin_ess_1d_l2-16.csv", row.names = FALSE)
 write.csv(neuro_1d, "bin_N1000T100_d1_lag2-16_rep100.csv", row.names = FALSE)
 ```
 
+## Experiment for Figure 7
+
+``` r
+library(dplyr)
+library(tidyr)
+
+alpha_neuro  <- 0.99
+sigma2_neuro <- 0.11
+M_neurons    <- 50
+Time         <- 100
+Napf         <- 1000
+lag_list     <- c(2, 4, 8, 16) 
+d_values     <- c(2, 4, 8, 16, 32, 64)
+n_repeats    <- 50  
+
+multivariate_results <- list()
+
+for (d in d_values) {
+  
+  model_nd <- list(
+    ini_mu           = rep(0, d), 
+    ini_cov          = diag(1, d),
+    tran_mu          = diag(alpha_neuro, d), 
+    tran_cov         = diag(sigma2_neuro, d), 
+    obs_params       = M_neurons,
+    eval_likelihood  = evaluate_likelihood_bin,
+    simu_observation = simulate_observation_bin,
+    parameters       = list(k = 5, tau = 0.5, kappa = 0.5)
+  )
+  
+  obs_nd  <- sample_obs(model_nd, Time, d)
+  data_nd <- list(obs = obs_nd)
+  
+  for (l_val in lag_list) {
+    for (r in 1:n_repeats) {
+      output_nd <- Orc_SMC(l_val, data_nd, model_nd, Napf)
+      
+      multivariate_results[[length(multivariate_results) + 1]] <- data.frame(
+        X = NA, x = output_nd$logZ[Time], d = d, lag = as.character(l_val), method = "orc"
+      )
+    }
+  }
+}
+
+neuro_nd <- do.call(rbind, multivariate_results)
+
+neuro_nd$X <- 1:nrow(neuro_nd) 
+
+neuro_nd$d   <- as.numeric(as.character(neuro_nd$d))
+neuro_nd$lag <- as.numeric(as.character(neuro_nd$lag))
+
+head(neuro_nd)
+
+write.csv(neuro_nd, "bin_N1000T100_d2-64_lag2-16_rep100.csv", row.names = FALSE)
+```
+
 ## Figure Reproduction
 
 This script reproduces the figures from "Online Rolling Controlled Sequential Monte Carlo" (Xue et al.) using synthetic data generated from experimental functions.
