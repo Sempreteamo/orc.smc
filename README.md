@@ -620,6 +620,86 @@ history_list <- do.call(rbind, history_all)
 df_all_history <- bind_rows(history_list)
 ```
 
+## Experiment for Figure 9
+
+``` r
+Time      <- 100
+d_values    <- c(2, 4, 8, 16, 32, 64)
+alpha     <- 0.415
+num_repeats <- 50
+B_max <- 30; K_min <- 1; K_max <- 10; gamma <- 10000
+
+results_list <- list()
+
+for(d_ in d_values){
+  tran_m <- matrix(0, d_, d_)
+  for (i in 1:d_) for (j in 1:d_) tran_m[i, j] <- alpha^(abs(i - j) + 1)
+  
+  model <- list(
+    ini_mu = rep(0, d_), ini_cov = diag(1, d_), 
+    tran_mu = tran_m, tran_cov = diag(1, d_), 
+    obs_params = list(obs_mean = diag(1, d_), obs_cov = diag(1, d_)),
+    eval_likelihood = evaluate_likelihood_lg, 
+    simu_observation = simulate_observation_lg, 
+    parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+  )
+  
+  set.seed(1234)
+  obs_    <- sample_obs(model, Time, d_)
+  data_   <- list(obs = as.matrix(obs_))
+  
+  params_fkf <- list(
+    dt = matrix(0, d_, 1), ct = matrix(0, d_, 1), Tt = as.matrix(tran_m), 
+    P0 = diag(1, d_), Zt = diag(1, d_), Ht = diag(1, d_), Gt = diag(1, d_), a0 = rep(0, d_), d = d_
+  )
+  fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
+  
+  for (i in 1:num_repeats) {
+    cat(sprintf("Running experiment %d / %d ...\n", i, num_repeats))
+    
+    run_res <- tryCatch({
+      output <- adaptative_Orc_SMC(
+        B_max = B_max, K_min = K_min, K_max = K_max, K1 = 2, gamma = gamma,
+        data = data_, model = model, 
+        N1 = floor(gamma / (1 * (2 + 1)))
+      )
+      
+      ratio_val <- compute_ratio(output$logZ[Time], fkf_logZ)
+      
+      
+      list(ratio = ratio_val)
+    }, error = function(e) {
+      cat("!!! error:", e$message, "\n")
+      return(NULL)
+    })
+    
+    results_list[[length(results_list) + 1]] <- data.frame(
+      x = run_res$ratio, 
+      method = "orc", 
+      d = d_
+    )
+    output_bpf <- run_bpf(data = data_, model = model, N = 42000)
+    ratio_val_bpf <- compute_ratio(output_bpf$logZ, fkf_logZ)
+    
+    
+    results_list[[length(results_list) + 1]] <- data.frame(
+      x = compute_ratio(output_bpf$logZ, fkf_logZ), 
+      method = "bpf", 
+      d = d_
+    )
+    
+  }
+  
+}
+
+diag <- do.call(rbind, results_list)
+
+diag <- diag[, c("x", "method", "d")]
+
+write.csv(diag, "adaptive_orc_bpf_10000T100d2-64.csv", row.names = FALSE)
+
+```
+
 ## Figure Reproduction
 
 This script reproduces the figures from "Online Rolling Controlled Sequential Monte Carlo" (Xue et al.) using synthetic data generated from experimental functions.
