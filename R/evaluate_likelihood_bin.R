@@ -8,8 +8,8 @@
 #'
 #' @return Log-likelihood
 #' @export
-evaluate_likelihood_bin <- function(x, y, M, model) {
-  M <- model$obs_p
+evaluate_likelihood_bin <- function(x, y, obs_params) {
+  M <- obs_params
 
   if (length(y) != length(x)) {
     stop("y and x must be of the same length")
