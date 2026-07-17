@@ -206,7 +206,7 @@ The experiment is repeated 50 times
 library(orc.smc)
 library(dplyr)
 ####orc_smc####
-set.seed(1234)
+
 d_values   <- c(2, 4, 8, 16, 32, 64)
 lag_values <- c("2", "4", "8", "16") 
 Napf       <- 1000  
@@ -235,6 +235,7 @@ for (rep_id in 1:n_repeats) {
       parameters = list(k = 5, tau = 0.5, kappa = 0.5)
     )
     
+    set.seed(1234)
     obs_   <- sample_obs(model, Time, d)
     data_  <- list(obs = obs_)
     
@@ -296,6 +297,7 @@ for (rep_id in 1:n_repeats) {
       parameters = list(k = 5, tau = 0.5, kappa = 0.5)
     )
     
+    set.seed(1234)
     obs_   <- sample_obs(model, Time, d)
     data_  <- list(obs = obs_)
     
@@ -359,6 +361,7 @@ for (rep_id in 1:n_repeats) {
                        P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
     fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
     
+    set.seed(1234)
     output_iapf <- run_CSMC(data = data_, Napf = Napf, K = K_iterations, model = model)
     x_val_iapf <- compute_ratio(output_iapf$logZ_final, fkf_logZ)
     
@@ -383,6 +386,7 @@ write.csv(final_df_csmc, "csmc_figure2.csv", row.names = FALSE)
 ####bind those csv files####
 all_results <- bind_rows(final_df_orc, final_df_bpf, final_df_csmc)
 write.csv(all_results, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv", row.names = FALSE)
+
 
 ```
 
