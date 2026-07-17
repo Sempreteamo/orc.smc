@@ -361,9 +361,8 @@ for (rep_id in 1:n_repeats) {
                        P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
     fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
     
-    set.seed(1234)
-    output_iapf <- run_CSMC(data = data_, Napf = Napf, K = K_iterations, model = model)
-    x_val_iapf <- compute_ratio(output_iapf$logZ_final, fkf_logZ)
+    output_iapf <- run_CSMC(data = data_, Napf = Napf, model = model)
+    x_val_iapf <- compute_ratio(output_iapf$log_marginal_likelihood , fkf_logZ)
     
     results_list[[length(results_list) + 1]] <- data.frame(
       rep = rep_id,  
