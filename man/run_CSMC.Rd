@@ -2,17 +2,22 @@
 % Please edit documentation in R/run_csmc.R
 \name{run_CSMC}
 \alias{run_CSMC}
-\title{Controlled Sequential Monte Carlo (CSMC) - Full implementation}
+\title{Controlled Sequential Monte Carlo (CSMC)}
 \usage{
-run_CSMC(data, Napf, K, model)
+run_CSMC(data, model, Napf)
 }
 \arguments{
-\item{data}{}
+\item{data}{List containing the observations (e.g., data$obs)}
 
-\item{Napf}{}
+\item{model}{List containing model parameters, likelihoods, and dimensions}
 
-\item{model}{}
+\item{Napf}{Number of particles (N)}
+
+\item{lag}{Rolling window length (passed per your specification, though full T pass is used here)}
+}
+\value{
+A list containing the approximated log marginal likelihood, smoothed trajectories, and final twisting functions.
 }
 \description{
-Controlled Sequential Monte Carlo (CSMC) - Full implementation
+Controlled Sequential Monte Carlo (CSMC)
 }

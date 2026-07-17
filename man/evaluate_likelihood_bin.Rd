@@ -4,7 +4,7 @@
 \alias{evaluate_likelihood_bin}
 \title{Compute log-likelihood for Binomial observations with logistic-transformed latent states}
 \usage{
-evaluate_likelihood_bin(x, y, M, model)
+evaluate_likelihood_bin(x, y, obs_params)
 }
 \arguments{
 \item{x}{Hidden states}

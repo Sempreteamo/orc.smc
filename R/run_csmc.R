@@ -6,6 +6,8 @@
 #' @param Napf Number of particles (N)
 #'
 #' @return A list containing the approximated log marginal likelihood, smoothed trajectories, and final twisting functions.
+#' 
+#' @export
 run_CSMC <- function(data, model, Napf) {
   
   # Extract basic configurations
