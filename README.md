@@ -219,7 +219,7 @@ results_all <- list()
 
 
 for (rep_id in 1:n_repeats) {
-  set.seed(rep_id)  #do we need to set seperate seeds for each independent trial?
+  set.seed(rep_id)  
   results_list <- list()
   
   for (d in d_values) {
@@ -280,7 +280,7 @@ n_repeats <- 50
 results_all <- list()
 
 for (rep_id in 1:n_repeats) {
-  set.seed(rep_id) #same question 
+  set.seed(rep_id) 
   results_list <- list()
   
   for (d in d_values) {
@@ -338,7 +338,7 @@ n_repeats <- 50
 results_all <- list()
 
 for (rep_id in 1:n_repeats) {
-  set.seed(rep_id) # same question
+  set.seed(rep_id) 
   results_list <- list()
   
   for (d in d_values) {
