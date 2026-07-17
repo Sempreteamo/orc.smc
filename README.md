@@ -243,9 +243,9 @@ for (d in d_values) {
   
   for (l_char in lag_values) {
     lag_val <- as.numeric(l_char)
-    print(system.time({
+    
     output  <- Orc_SMC(lag_val, data_, model, Napf)
-    }))
+    
     x_val   <- compute_ratio(output$logZ[Time], fkf_logZ)
     
     results_list[[length(results_list) + 1]] <- data.frame(
@@ -338,9 +338,9 @@ for (d in d_values) {
   params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(tran_m),
                      P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
   fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
-  print(system.time({
+  
   output_iapf <- run_CSMC(data = data_, Napf = Napf, K = K_iterations, model = model)
-  }))
+  
   
   x_val_iapf <- compute_ratio(output_iapf$logZ_final, fkf_logZ)
   
