@@ -429,6 +429,7 @@ for (d in d_values) {
     lag_val <- as.numeric(l_char)
     
     for (r in 1:n_repeats) {
+      set.seed(r)
       output <- Orc_SMC(lag_val, list(obs = obs_), model, Napf)
       
       # Calculate L1 error at t=1, t=T/2, t=T
@@ -508,7 +509,7 @@ results_list <- list()
 
 for (l_val in lag_values) {
   for (r in 1:n_repeats) {
-    
+    set.seed(r)
     output <- Orc_SMC(l_val, data_svm, model_svm, N_particles)
     
     val <- output$logZ[Time_svm]
@@ -569,6 +570,7 @@ logz_df <- data.frame()
 for (L in lag_list) {
   #cat("Running Lag =", L, "\n")
   for (i in 1:n_repeats) {
+    set.seed(i)
     # Suppress internal output for cleaner execution
     
     res <- Orc_SMC(L, list(obs = obs_data), model_1d, Napf)
@@ -638,6 +640,7 @@ for (d in d_values) {
   
   for (l_val in lag_list) {
     for (r in 1:n_repeats) {
+      set.seed(r)
       output_nd <- Orc_SMC(l_val, data_nd, model_nd, Napf)
       
       multivariate_results[[length(multivariate_results) + 1]] <- data.frame(
@@ -695,6 +698,7 @@ results_list <- list()
 history_all  <- list()
 
 for (i in 1:num_repeats) {
+  set.seed(i)
   cat(sprintf("Running experiment %d / %d ...\n", i, num_repeats))
   
   run_res <- tryCatch({
@@ -763,6 +767,7 @@ for(d_ in d_values){
   fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
   
   for (i in 1:num_repeats) {
+    set.seed(i)
     cat(sprintf("Running experiment %d / %d ...\n", i, num_repeats))
     
     run_res <- tryCatch({
