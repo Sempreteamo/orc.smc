@@ -323,6 +323,16 @@ Napf_orc     <- 1000
 N_bpf        <- 320000
 Napf_csmc    <- 25000
 
+d_values     <- c(4, 8)
+lag_values   <- c("2", "4") 
+Time         <- 10
+alpha        <- 0.415
+n_repeats    <- 2  
+
+Napf_orc     <- 100
+N_bpf        <- 320
+Napf_csmc    <- 250
+
 results_orc_list  <- list()
 results_l1_list   <- list()
 results_bpf_list  <- list()
@@ -397,8 +407,8 @@ for (rep_id in 1:n_repeats) {
       test_times <- c(1, floor(Time/2), Time)
       for (t in test_times) {
         
-        particle_list <- if(!is.null(output$H_forward)) output$H_forward else output$H_history
-        p_vals <- particle_list[[t + 1]]$X[, 1] 
+        p_vals <- output$trajectories[, 1, t]
+        
         m_t <- filter_res$ahatt[1, t]
         s_t <- sqrt(filter_res$Vt[1, 1, t])
         
@@ -460,7 +470,7 @@ for (rep_id in 1:n_repeats) {
     fkf_res    <- fkf_res_by_d[[as.character(d)]]
     fkf_logZ   <- fkf_res[[1]]
     filter_res <- fkf_res[[2]]
-
+    
     # BPF
     set.seed(rep_id) 
     output_bpf <- run_bpf(data = data_, model, N = N_bpf)
@@ -468,7 +478,7 @@ for (rep_id in 1:n_repeats) {
     results_bpf_list[[length(results_bpf_list) + 1]] <- data.frame(
       rep = rep_id, X = NA, x = x_val_bpf, d = d, lag = "none", method = "bpf"
     )
-
+    
   }
 }
 
@@ -500,7 +510,7 @@ for (rep_id in 1:n_repeats) {
     fkf_res    <- fkf_res_by_d[[as.character(d)]]
     fkf_logZ   <- fkf_res[[1]]
     filter_res <- fkf_res[[2]]
-  
+    
     set.seed(rep_id) 
     output_iapf <- run_CSMC(data = data_, Napf = Napf_csmc, model = model)
     x_val_iapf <- compute_ratio(output_iapf$log_marginal_likelihood , fkf_logZ)
