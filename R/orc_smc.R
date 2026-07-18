@@ -89,6 +89,17 @@ Orc_SMC <- function(lag, data, model, N) {
     logZ_vec[t] <- H[[t + 1]]$logZ
 
   }
+  
+  trajectories <- array(NA, c(N, d, Time))
+  trajectories[, , Time] <- H[[Time + 1]]$X
+  current_indices <- 1:N
+  
+  for (t_step in (Time - 1):1) {
+    
+    current_indices <- H[[t_step + 2]]$anc[current_indices]
+    
+    trajectories[, , t_step] <- H[[t_step + 1]]$X[current_indices, ]
+  }
 
-  return(list(logZ = logZ_vec, f_means = filtering_estimates, H_forward  = H,  ess_history = ess_history))
+  return(list(logZ = logZ_vec, f_means = filtering_estimates, H_forward  = H,  ess_history = ess_history, trajectories = trajectories))
 }
