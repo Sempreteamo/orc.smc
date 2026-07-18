@@ -2,7 +2,9 @@
 
 export(Orc_SMC)
 export(adaptative_Orc_SMC)
+export(compute_backward_smoothing)
 export(compute_fkf)
+export(compute_l1_at_t)
 export(compute_ratio)
 export(compute_twisted_params)
 export(evaluate_likelihood_bin)
