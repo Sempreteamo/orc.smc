@@ -363,9 +363,11 @@ for (rep_id in 1:n_repeats) {
     obs_   <- obs_data_by_d[[as.character(d)]]
     data_  <- list(obs = obs_)
     
-    fkf_res    <- fkf_res_by_d[[as.character(d)]]
-    fkf_logZ   <- fkf_res[[1]]
-    filter_res <- fkf_res[[2]]
+    fkf_res <- fkf_res_by_d[[as.character(d)]]
+    fkf_logZ <- fkf_res[[1]]
+    fks_obj <- fkf_res[[2]]
+    smooth_means <- t(fks_obj$ahatt)
+    smooth_covs <- fks_obj$Vt
     
     # ORC SMC 
     for (l_char in lag_values) {
@@ -373,6 +375,7 @@ for (rep_id in 1:n_repeats) {
       
       set.seed(rep_id)
       output <- Orc_SMC(lag_val, data_, model, Napf_orc)
+      smooth_particles <- compute_backward_smoothing(output$H_forward)
       
       #Log-Z Ratio
       x_val <- compute_ratio(output$logZ[Time], fkf_logZ)
@@ -382,25 +385,17 @@ for (rep_id in 1:n_repeats) {
       
       # L1 error
       test_times <- c(1, floor(Time/2), Time)
-      for (t in test_times) {
-        
-        p_vals <- output$trajectories[, 1, t]
-        
-        m_t <- filter_res$ahatt[1, t]
-        s_t <- sqrt(filter_res$Vt[1, 1, t])
-        
-        calc_w1 <- function(particles, true_mean, true_sd) {
-          n <- length(particles)
-          sorted_p <- sort(particles)
-          target_q <- qnorm(seq(1/(n+1), n/(n+1), length.out = n), mean = true_mean, sd = true_sd)
-          return(mean(abs(sorted_p - target_q)))
-        }
-        err <- calc_w1(p_vals, m_t, s_t)
-        
+      L1_error <- compute_l1_at_t(data_, smooth_particles, test_times, smooth_means,
+                                  smooth_covs )
+      
+      for (idx in seq_along(test_times)) {
+        t <- test_times[idx]
         results_l1_list[[length(results_l1_list) + 1]] <- data.frame(
-          d = d, lag = lag_val, rep = rep_id,
+          d = d, 
+          lag = lag_val, 
+          rep = rep_id,
           Time_Point = ifelse(t == 1, "1", ifelse(t == Time, "T", "T/2")),
-          Value = err
+          Value = L1_error[idx]
         )
       }
     }
