@@ -560,7 +560,7 @@ for (r in 1:n_repeats) {
 
 fig <- do.call(rbind, results_list)
 
-write.csv(fig,'bpf+orc_N200_d1_lag2-16_svm_rep100.csv', row.names = FALSE)
+write.csv(fig,'bpf+orc_N200_d1_lag2-16_svm_rep50.csv', row.names = FALSE)
 
 
 ```
@@ -821,7 +821,7 @@ DATA_PATHS <- list(
   neuro_1d  = "bin_N1000T100_d1-64_lag2-16_rep50.csv",
   neuro_ess = "bin_ess_1d_l2-16.csv",
   neuro_nd  = "bin_N1000T100_d1-64_lag2-16_rep50.csv",
-  svm_data  = "bpf+orc_N200_d1_lag2-16_svm_rep100.csv",
+  svm_data  = "bpf+orc_N200_d1_lag2-16_svm_rep50.csv",
   l1_error  = "l1error_orc_N1000T100_d2-64_lag2_16_rep50.csv",
   diag_nd   = "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv",
   nc_comp   = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep50.csv",
