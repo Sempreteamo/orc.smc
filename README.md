@@ -565,97 +565,31 @@ write.csv(fig,'bpf+orc_N200_d1_lag2-16_svm_rep100.csv', row.names = FALSE)
 
 ```
 
-## Experiment for Figure 6
+## Experiment for Figure 6 and 7
 
 ``` r
 library(dplyr)
 library(tidyr)
+library(orc.smc)
 
+#### --- Parameter Settings --- ####
+lag_list     <- c(2, 4, 8, 16) 
+d_values     <- c(1, 2, 4, 8, 16, 32, 64)
 alpha_neuro  <- 0.99
 sigma2_neuro <- 0.11
 M_neurons    <- 50
 Time         <- 100
 Napf         <- 1000
-lag_list     <- c(2, 4, 8, 16) 
-d_values     <- c(2, 4, 8, 16, 32, 64)
-n_repeats    <- 50  
-
-#d = 1
-model_1d <- list(
-  ini_mu           = 0, 
-  ini_cov          = as.matrix(1.0),
-  tran_mu          = as.matrix(alpha_neuro), 
-  tran_cov         = as.matrix(sigma2_neuro), 
-  obs_params       = M_neurons,
-  eval_likelihood  = evaluate_likelihood_bin,
-  simu_observation = simulate_observation_bin,
-  parameters       = list(k = 5, tau = 0.5, kappa = 0.5)
-)
-
-
-set.seed(1234)
-obs_data <- sample_obs(model_1d, Time, d = 1)
-ess_data<- list(
-  X = 1:Time, 
-  Time = 1:Time
-)
-logz_df <- data.frame()
-
-for (L in lag_list) {
-  #cat("Running Lag =", L, "\n")
-  for (i in 1:n_repeats) {
-    set.seed(i)
-    # Suppress internal output for cleaner execution
-    
-    res <- Orc_SMC(L, list(obs = obs_data), model_1d, Napf)
-    
-    
-    # Check if ESS was returned correctly to prevent the "0 row" error
-    if (!is.null(res$ess_history) && length(res$ess_history) == Time) {
-      if (i == 1) { # Only store one trajectory per Lag for the ESS plot
-        col_name <- paste0("l", L)
-        ess_data[[col_name]] <- res$ess_history
-      }
-    }
-    
-    # Store LogZ for all repeats (for the boxplot)
-    logz_df <- rbind(logz_df, data.frame(LogZ = res$logZ[Time], Lag = factor(L, levels = lag_list)))
-  }
-}
-
-logz_df$X <- 1:nrow(logz_df)
-neuro_1d <- logz_df %>%
-  
-  mutate(
-    X = 1:n(),
-    x = LogZ
-  ) %>%
-  
-  select(X, x, Lag)
-
-ess <- as.data.frame(ess_data)
-
-write.csv(ess, "bin_ess_1d_l2-16.csv", row.names = FALSE)
-write.csv(neuro_1d, "bin_N1000T100_d1_lag2-16_rep100.csv", row.names = FALSE)
-```
-
-## Experiment for Figure 7
-
-``` r
-library(dplyr)
-library(tidyr)
-
-alpha_neuro  <- 0.99
-sigma2_neuro <- 0.11
-M_neurons    <- 50
-Time         <- 100
-Napf         <- 1000
-lag_list     <- c(2, 4, 8, 16) 
-d_values     <- c(2, 4, 8, 16, 32, 64)
 n_repeats    <- 50  
 
 multivariate_results <- list()
 
+ess_data <- list(
+  X = 1:Time, 
+  Time = 1:Time
+)
+
+#### --- Main Experiment Loop --- ####
 for (d in d_values) {
   
   model_nd <- list(
@@ -669,6 +603,7 @@ for (d in d_values) {
     parameters       = list(k = 5, tau = 0.5, kappa = 0.5)
   )
   
+  set.seed(1234)
   obs_nd  <- sample_obs(model_nd, Time, d)
   data_nd <- list(obs = obs_nd)
   
@@ -677,24 +612,34 @@ for (d in d_values) {
       set.seed(r)
       output_nd <- Orc_SMC(l_val, data_nd, model_nd, Napf)
       
+      if (d == 1) {
+        if (!is.null(output_nd$ess_history) && length(output_nd$ess_history) == Time) {
+          if (r == 1) { # record ESS
+            col_name <- paste0("l", l_val)
+            ess_data[[col_name]] <- output_nd$ess_history
+          }
+        }
+      }
+      
+      # record LogZ 
       multivariate_results[[length(multivariate_results) + 1]] <- data.frame(
-        X = NA, x = output_nd$logZ[Time], d = d, lag = as.character(l_val), method = "orc"
+        X = NA, x = output_nd$logZ[Time], d = d, lag = l_val, method = "orc"
       )
     }
   }
 }
 
-neuro_nd <- do.call(rbind, multivariate_results)
+#### --- Data Processing & Export --- ####
 
-neuro_nd$X <- 1:nrow(neuro_nd) 
+neuro_all <- do.call(rbind, multivariate_results)
+neuro_all$X <- 1:nrow(neuro_all) 
+write.csv(neuro_all, "bin_N1000T100_d1-64_lag2-16_rep50.csv", row.names = FALSE)
 
-neuro_nd$d   <- as.numeric(as.character(neuro_nd$d))
-neuro_nd$lag <- as.numeric(as.character(neuro_nd$lag))
+ess <- as.data.frame(ess_data)
+write.csv(ess, "bin_ess_1d_l2-16.csv", row.names = FALSE)
 
-head(neuro_nd)
-
-write.csv(neuro_nd, "bin_N1000T100_d2-64_lag2-16_rep100.csv", row.names = FALSE)
 ```
+
 
 ## Experiment for Figure 8
 
@@ -873,9 +818,9 @@ library(patchwork)
 # --- 0. DATASET CONFIGURATION (User: Define your file paths here) ---
 # To reproduce the plots, replace these filenames with your own generated datasets.
 DATA_PATHS <- list(
-  neuro_1d  = "bin_N1000T100_d1_lag2-16_rep100.csv",
+  neuro_1d  = "bin_N1000T100_d1-64_lag2-16_rep50.csv",
   neuro_ess = "bin_ess_1d_l2-16.csv",
-  neuro_nd  = "bin_N1000T100_d2-64_lag2-16_rep100.csv",
+  neuro_nd  = "bin_N1000T100_d1-64_lag2-16_rep50.csv",
   svm_data  = "bpf+orc_N200_d1_lag2-16_svm_rep100.csv",
   l1_error  = "l1error_orc_N1000T100_d2-64_lag2_16_rep50.csv",
   diag_nd   = "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv",
@@ -1044,7 +989,7 @@ ess_df_long <- read.csv(DATA_PATHS$neuro_ess) %>%
 logz_df <- read.csv(DATA_PATHS$neuro_1d) %>% 
   rename(LogZ = x) %>%          
   select(-X) %>%                
-  mutate(Lag = factor(Lag, levels = c(2, 4, 8, 16)))
+  mutate(Lag = factor(lag, levels = c(2, 4, 8, 16)))
 
 p_ess <- ggplot(ess_df_long, aes(x = Time, y = ESS, color = Lag)) +
   geom_line(linewidth = 0.7) + 
@@ -1067,6 +1012,7 @@ dev.off()
 tikz("neuro_logz.tex", width = 3.3, height = 3, sanitize = FALSE)
 print(p_logz)
 dev.off()
+
 
 
 # ##############################################################################
