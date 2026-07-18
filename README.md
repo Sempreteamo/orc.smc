@@ -269,7 +269,7 @@ write.csv(final_df_orc, "orc_smc_figure2.csv", row.names = FALSE)
 
 
 ####bpf####
-set.seed(1234)
+
 d_values   <- c(2, 4, 8, 16, 32, 64)
 N_bpf      <- 320000 
 Time       <- 100
@@ -327,7 +327,7 @@ final_df_bpf <- bind_rows(results_all)
 write.csv(final_df_bpf, "bpf_figure2.csv", row.names = FALSE)
 
 ####csmc####
-set.seed(1234)
+
 d_values   <- c(2, 4, 8, 16, 32, 64)
 Napf      <- 25000
 Time       <- 100
@@ -353,7 +353,7 @@ for (rep_id in 1:n_repeats) {
       simu_observation = simulate_observation_lg,
       parameters = list(k = 5, tau = 0.5, kappa = 0.5)
     )
-    
+    set.seed(1234)
     obs_   <- sample_obs(model, Time, d)
     data_  <- list(obs = obs_)
     
