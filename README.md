@@ -305,31 +305,36 @@ write.csv(all_results, "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv", ro
 
 ```
 
-## Experiment for Figure 2 and 3
+## Experiment for Figure 2, 3 and 4
 The experiment is repeated 50 times
 ``` r
 library(orc.smc)
 library(dplyr)
-####orc_smc####
+library(tidyr)
 
-d_values   <- c(2, 4, 8, 16, 32, 64)
-lag_values <- c("2", "4", "8", "16") 
-Napf       <- 1000  
-Time       <- 100
-alpha      <- 0.415
-K_iterations <- 5
-n_repeats = 50
+####orc_smc for figure 2,3,4####
+d_values     <- c(2, 4, 8, 16, 32, 64)
+lag_values   <- c("2", "4", "8", "16") 
+Napf         <- 1000  
+Time         <- 100
+alpha        <- 0.415
+n_repeats    <- 50  
 
-results_all <- list()
-
+results_orc_list <- list()
+results_l1_list  <- list()
 
 for (rep_id in 1:n_repeats) {
-  set.seed(rep_id)  
-  results_list <- list()
+  set.seed(rep_id)
+  message("Running Simulation Repeat: ", rep_id)
   
   for (d in d_values) {
+    
     tran_m <- matrix(0, d, d)
-    for (i in 1:d) for (j in 1:d) tran_m[i, j] <- alpha^(abs(i - j) + 1)
+    for (i in 1:d) {
+      for (j in 1:d) {
+        tran_m[i, j] <- alpha^(abs(i - j) + 1)
+      }
+    }
     
     model <- list(
       ini_mu = rep(0, d), ini_cov = diag(1, d),
@@ -344,33 +349,82 @@ for (rep_id in 1:n_repeats) {
     obs_   <- sample_obs(model, Time, d)
     data_  <- list(obs = obs_)
     
-    params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(tran_m),
-                       P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
-    fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
+    params_fkf <- list(
+      dt = matrix(0, d, 1), ct = matrix(0, d, 1), Tt = as.matrix(tran_m),
+      P0 = diag(1, d), Zt = diag(1, d), Ht = diag(1, d), Gt = diag(1, d), 
+      a0 = rep(0, d), d = d
+    )
+    
+    fkf_res  <- compute_fkf(params_fkf, obs_)
+    fkf_logZ <- fkf_res[[1]]
+    filter_res <- fkf_res[[2]]
     
     for (l_char in lag_values) {
       lag_val <- as.numeric(l_char)
-      output  <- Orc_SMC(lag_val, data_, model, Napf)
-      x_val   <- compute_ratio(output$logZ[Time], fkf_logZ)
       
-      results_list[[length(results_list) + 1]] <- data.frame(
+      output <- Orc_SMC(lag_val, data_, model, Napf)
+      
+      # ---------------- log-Z Ratio ----------------
+      x_val <- compute_ratio(output$logZ[Time], fkf_logZ)
+      
+      results_orc_list[[length(results_orc_list) + 1]] <- data.frame(
         rep = rep_id,  
-        X = NA, 
+        X = NA,        
         x = x_val, 
         d = d, 
         lag = l_char, 
         method = "orc"
       )
+      
+      # ---------------- L1 error ----------------
+      test_times <- c(1, floor(Time/2), Time)
+      
+      for (t in test_times) {
+       
+        p_vals <- output$H_forward[[t + 1]]$X[, 1] 
+        m_t <- filter_res$ahatt[1, t]
+        s_t <- sqrt(filter_res$Vt[1, 1, t])
+        
+        
+        calc_w1 <- function(particles, true_mean, true_sd) {
+          n <- length(particles)
+          sorted_p <- sort(particles)
+          target_q <- qnorm(seq(1/(n+1), n/(n+1), length.out = n), mean = true_mean, sd = true_sd)
+          return(mean(abs(sorted_p - target_q)))
+        }
+        
+        err <- calc_w1(p_vals, m_t, s_t)
+        
+        results_l1_list[[length(results_l1_list) + 1]] <- data.frame(
+          d = d,
+          lag = lag_val,
+          rep = rep_id,
+          Time_Point = ifelse(t == 1, "1", ifelse(t == Time, "T", "T/2")),
+          Value = err
+        )
+      }
     }
   }
-  
-  df_single_rep <- bind_rows(results_list)
-  df_single_rep$X <- 1:nrow(df_single_rep)
-  results_all[[rep_id]] <- df_single_rep
 }
 
-final_df_orc <- bind_rows(results_all)
-write.csv(final_df_orc, "orc_smc_figure2.csv", row.names = FALSE)
+
+final_df_orc <- bind_rows(results_orc_list)
+final_df_orc$X <- 1:nrow(final_df_orc) 
+write.csv(final_df_orc, "orc_smc_figure2_3_4.csv", row.names = FALSE)
+
+
+
+long_l1_df <- bind_rows(results_l1_list)
+
+fig <- long_l1_df %>%
+  group_by(d, lag, rep, Time_Point) %>%
+  summarise(Value = mean(Value), .groups = 'drop') %>%
+  pivot_wider(names_from = Time_Point, values_from = Value) %>%
+  rename(X1 = `1`, T.2 = `T/2`, T = `T`) %>%
+  select(X1, T.2, T, d, lag)
+
+write.csv(fig,"l1error_orc_N1000T100_d2-64_lag2_16_rep100.csv", row.names = FALSE)
+
 
 
 ####bpf####
@@ -492,94 +546,6 @@ all_results <- bind_rows(final_df_orc, final_df_bpf, final_df_csmc)
 write.csv(all_results, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv", row.names = FALSE)
 
 
-```
-
-## Experiment for Figure 4
-
-``` r
-library(dplyr)
-library(tidyr)
-
-d_values     <- c(2, 4, 8, 16, 32, 64)
-lag_values   <- c("2", "4", "8", "16") 
-Napf         <- 1000  
-Time         <- 100
-alpha        <- 0.415
-n_repeats    <- 50 
-
-all_results <- list()
-
-for (d in d_values) {
-  
-  tran_m <- matrix(0, d, d)
-  for (i in 1:d) for (j in 1:d) tran_m[i, j] <- alpha^(abs(i - j) + 1)
-  
-  model <- list(
-    ini_mu = rep(0, d), ini_cov = diag(1, d),
-    tran_mu = tran_m, tran_cov = diag(1, d),
-    obs_params = list(obs_mean = diag(1, d), obs_cov = diag(1, d)),
-    eval_likelihood = evaluate_likelihood_lg,
-    simu_observation = simulate_observation_lg,
-    parameters = list(k = 5, tau = 0.5, kappa = 0.5)
-  )
-  
-  set.seed(1234)
-  obs_ <- sample_obs(model, Time, d)
-  params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(tran_m),
-                     P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), 
-                     a0=rep(0,d), d=d)
-  filter_res <- compute_fkf(params_fkf, obs_)[[2]]
-  
-  for (l_char in lag_values) {
-    lag_val <- as.numeric(l_char)
-    
-    for (r in 1:n_repeats) {
-      set.seed(r)
-      output <- Orc_SMC(lag_val, list(obs = obs_), model, Napf)
-      
-      # Calculate L1 error at t=1, t=T/2, t=T
-      test_times <- c(1, floor(Time/2), Time)
-      
-      for (t in test_times) {
-        p_vals <- output$H_forward[[t + 1]]$X[, 1] # First coordinate
-        m_t <- filter_res$ahatt[1, t]
-        s_t <- sqrt(filter_res$Vt[1, 1, t])
-        
-        calc_w1 <- function(particles, true_mean, true_sd) {
-          n <- length(particles)
-          sorted_p <- sort(particles)
-          # Quantiles of the target Gaussian distribution
-          target_q <- qnorm(seq(1/(n+1), n/(n+1), length.out = n), mean = true_mean, sd = true_sd)
-          return(mean(abs(sorted_p - target_q)))
-        }
-        
-        err <- calc_w1(p_vals, m_t, s_t)
-        
-        all_results <- rbind(all_results, data.frame(
-          d = d,
-          lag = lag_val,
-          rep = r,
-          Time_Point = ifelse(t==1, "1", ifelse(t==Time, "T", "T/2")),
-          Value = err
-        ))
-      }
-    }
-  }
-}
-
-long_df <- bind_rows(all_results)
-
-fig <- long_df %>%
-  group_by(d, lag, rep, Time_Point) %>%
-  summarise(Value = mean(Value), .groups = 'drop') %>%
-  pivot_wider(names_from = Time_Point, values_from = Value) %>%
-  rename(X1 = `1`, T.2 = `T/2`, T = `T`)
-
-fig <- fig %>% select(X1, T.2, T, d, lag)
-
-head(fig)
-
-write.csv(fig,"l1error_orc_N1000T100_d2-64_lag2_16_rep100.csv", row.names = FALSE)
 ```
 
 ## Experiment for Figure 5
