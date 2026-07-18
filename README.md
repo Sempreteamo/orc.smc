@@ -310,16 +310,6 @@ Napf_orc     <- 1000
 N_bpf        <- 320000
 Napf_csmc    <- 25000
 
-d_values     <- c(4, 8)
-lag_values   <- c("2", "4") 
-Time         <- 10
-alpha        <- 0.415
-n_repeats    <- 2  
-
-Napf_orc     <- 100
-N_bpf        <- 320
-Napf_csmc    <- 250
-
 results_orc_list  <- list()
 results_l1_list   <- list()
 results_bpf_list  <- list()
