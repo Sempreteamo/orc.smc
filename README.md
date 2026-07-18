@@ -126,76 +126,181 @@ ratio_vec_orc <- compute_ratio(output$logZ[Time], fkf_obj)
 ## Experiment for Figure 1
 The experiment is repeated 50 times
 ``` r
+library(orc.smc)
+library(dplyr)
+####orc_smc####
 d_values   <- c(2, 4, 8, 16, 32, 64)
 lag_values <- c("2", "4", "8", "16") 
 Napf       <- 1000  
-N_bpf      <- 320000 
 Time       <- 100
 alpha      <- 0.415
 K_iterations <- 5
+n_repeats <- 50
+all_results <- list()
 
-results_list <- list()
-
-
-for (d in d_values) {
+for (rep_id in 1:n_repeats) {
+  set.seed(rep_id)  
+  results_list <- list()
   
-  model <- list(
-    ini_mu = rep(0, d), ini_cov = diag(1, d),
-    tran_mu = diag(1, d), tran_cov = diag(1, d),
-    obs_params = list(obs_mean = diag(1, d), obs_cov = diag(1, d)),
-    eval_likelihood = evaluate_likelihood_lg,
-    simu_observation = simulate_observation_lg,
-    parameters = list(k = 5, tau = 0.5, kappa = 0.5)
-  )
-  
-  set.seed(1234)
-  obs_   <- sample_obs(model, Time, d)
-  data_  <- list(obs = obs_)
-  
-  
-  params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(model$tran_mu),
-                     P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
-  fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
-  
-  #run orcsmc#
-  for (l_char in lag_values) {
-    lag_val <- as.numeric(l_char)
-    output  <- Orc_SMC(lag_val, data_, model, Napf)
-    x_val   <- compute_ratio(output$logZ[Time], fkf_logZ)
+  for (d in d_values) {
     
-    results_list[[length(results_list) + 1]] <- data.frame(
-      X = NA, x = x_val, d = d, lag = l_char, method = "orc"
+    model <- list(
+      ini_mu = rep(0, d), ini_cov = diag(1, d),
+      tran_mu = diag(1, d), tran_cov = diag(1, d),
+      obs_params = list(obs_mean = diag(1, d), obs_cov = diag(1, d)),
+      eval_likelihood = evaluate_likelihood_lg,
+      simu_observation = simulate_observation_lg,
+      parameters = list(k = 5, tau = 0.5, kappa = 0.5)
     )
+    set.seed(1234)
+    obs_   <- sample_obs(model, Time, d)
+    data_  <- list(obs = obs_)
+    
+    params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(model$tran_mu),
+                       P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
+    fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
+    
+    for (l_char in lag_values) {
+      lag_val <- as.numeric(l_char)
+      output  <- Orc_SMC(lag_val, data_, model, Napf)
+      x_val   <- compute_ratio(output$logZ[Time], fkf_logZ)
+      
+      results_list[[length(results_list) + 1]] <- data.frame(
+        rep = rep_id,  
+        X = NA, 
+        x = x_val, 
+        d = d, 
+        lag = l_char, 
+        method = "orc"
+      )
+    }
   }
   
-  #run bpf#
-  output_bpf <- run_bpf(data = data_, model, N = N_bpf)
-  x_val_bpf  <- compute_ratio(output_bpf$logZ, fkf_logZ)
   
-  results_list[[length(results_list) + 1]] <- data.frame(
-    X = NA, x = x_val_bpf, d = d, lag = "none", method = "bpf"
-  )
-  
-  #run csmc#
-  output_iapf <- run_CSMC(data = data_, Napf = Napf, K = K_iterations, model = model)
-  
-  
-  x_val_iapf <- compute_ratio(output_iapf$logZ_final, fkf_logZ)
-  
-  
-  results_list[[length(results_list) + 1]] <- data.frame(
-    X = NA, x = x_val_iapf, d = d, lag = "none", method = "csmc"
-  )
+  df_single <- bind_rows(results_list)
+  df_single$X <- 1:nrow(df_single)
+  all_results[[rep_id]] <- df_single
 }
 
 
-final_df <- bind_rows(results_list)
+final_df_orc <- bind_rows(all_results)
+write.csv(final_df_orc, "orc_smc_figure1.csv", row.names = FALSE)
 
-final_df$X <- 1:nrow(final_df)
 
-head(final_df)
+####bpf####
+d_values   <- c(2, 4, 8, 16, 32, 64)
+N_bpf       <- 320000 
+Time       <- 100
+alpha      <- 0.415
+K_iterations <- 5
+n_repeats <- 50
+all_results <- list()
 
-write.csv(final_df, "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv", row.names = FALSE)
+for (rep_id in 1:n_repeats) {
+  set.seed(rep_id) 
+  results_list <- list()
+  
+  for (d in d_values) {
+    
+    model <- list(
+      ini_mu = rep(0, d), ini_cov = diag(1, d),
+      tran_mu = diag(1, d), tran_cov = diag(1, d),
+      obs_params = list(obs_mean = diag(1, d), obs_cov = diag(1, d)),
+      eval_likelihood = evaluate_likelihood_lg,
+      simu_observation = simulate_observation_lg,
+      parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+    )
+    set.seed(1234)
+    obs_   <- sample_obs(model, Time, d)
+    data_  <- list(obs = obs_)
+    
+    params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(model$tran_mu),
+                       P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
+    fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
+    
+    # run bpf
+    output_bpf <- run_bpf(data = data_, model, N = N_bpf)
+    x_val_bpf  <- compute_ratio(output_bpf$logZ, fkf_logZ)
+    
+    results_list[[length(results_list) + 1]] <- data.frame(
+      rep = rep_id,  
+      X = NA, 
+      x = x_val_bpf, 
+      d = d, 
+      lag = "none", 
+      method = "bpf"
+    )
+  }
+  
+  df_single <- bind_rows(results_list)
+  df_single$X <- 1:nrow(df_single)
+  all_results[[rep_id]] <- df_single
+}
+
+final_df_bpf <- bind_rows(all_results)
+write.csv(final_df_bpf, "bpf_figure1.csv", row.names = FALSE)
+
+
+####csmc####
+d_values   <- c(2, 4, 8, 16, 32, 64)
+Napf       <- 25000 
+Time       <- 100
+alpha      <- 0.415
+K_iterations <- 5
+n_repeats <- 50
+all_results <- list()
+
+for (rep_id in 1:n_repeats) {
+  results_list <- list()
+  
+  for (d in d_values) {
+    
+    model <- list(
+      ini_mu = rep(0, d), ini_cov = diag(1, d),
+      tran_mu = diag(1, d), tran_cov = diag(1, d),
+      obs_params = list(obs_mean = diag(1, d), obs_cov = diag(1, d)),
+      eval_likelihood = evaluate_likelihood_lg,
+      simu_observation = simulate_observation_lg,
+      parameters = list(k = 5, tau = 0.5, kappa = 0.5)
+    )
+    
+    set.seed(1234)
+    obs_   <- sample_obs(model, Time, d)
+    data_  <- list(obs = obs_)
+    
+    
+    params_fkf <- list(dt=matrix(0,d,1), ct=matrix(0,d,1), Tt=as.matrix(model$tran_mu),
+                       P0=diag(1,d), Zt=diag(1,d), Ht=diag(1,d), Gt=diag(1,d), a0=rep(0,d), d=d)
+    fkf_logZ <- compute_fkf(params_fkf, obs_)[[1]]
+    
+    #run csmc#
+    output_iapf <- run_CSMC(data = data_, Napf = Napf, model = model)
+    x_val_iapf <- compute_ratio(output_iapf$log_marginal_likelihood , fkf_logZ)
+    
+    results_list[[length(results_list) + 1]] <- data.frame(
+      rep = rep_id,  
+      X = NA, 
+      x = x_val_iapf, 
+      d = d, 
+      lag = "none", 
+      method = "csmc"
+    )
+  }
+  
+  df_single <- bind_rows(results_list)
+  df_single$X <- 1:nrow(df_single)
+  all_results[[rep_id]] <- df_single
+}
+
+final_df_csmc <- bind_rows(all_results)
+write.csv(final_df_csmc, "csmc_figure1.csv", row.names = FALSE)
+
+####bind those csv files####
+all_results <- bind_rows(final_df_orc, final_df_bpf, final_df_csmc)
+
+write.csv(all_results, "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv", row.names = FALSE)
+
+
 
 
 ```
