@@ -887,10 +887,10 @@ DATA_PATHS <- list(
   neuro_ess = "bin_ess_1d_l2-16.csv",
   neuro_nd  = "bin_N1000T100_d2-64_lag2-16_rep100.csv",
   svm_data  = "bpf+orc_N200_d1_lag2-16_svm_rep100.csv",
-  l1_error  = "l1error_orc_N1000T100_d2-64_lag2_16_rep100.csv",
+  l1_error  = "l1error_orc_N1000T100_d2-64_lag2_16_rep50.csv",
   diag_nd   = "diag0.415_nc_orc+bpf+iapf_N1000T100_d2-64_l2-16.csv",
-  nc_comp   = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
-  rmse_data = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep100.csv",
+  nc_comp   = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep50.csv",
+  rmse_data = "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep50.csv",
   df_diag_nd = "adaptive_orc_bpf_10000T100d2-64.csv"
 )
 
