@@ -647,6 +647,9 @@ write.csv(ess, "bin_ess_1d_l2-16.csv", row.names = FALSE)
 
 ``` r
 library(gridExtra)
+library(orc.smc)
+library(dplyr)
+
 Time      <- 1000
 d_        <- 2
 alpha     <- 0.415
