@@ -504,12 +504,14 @@ write.csv(all_results, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep50.csv
 ```
 
 ## Experiment for Figure 5
-The financial dataset we used in this experiment is downloaded from: https://www.bankofengland.co.uk/boeapps/database/fromshowcolumns.asp?Travel=NIxSTxTIxSUx&FromSeries=1&ToSeries=50&DAT=RNG&FD=1&FM=Oct&FY=1981&TD=28&TM=Jun&TY=1985&FNY=&CSVF=TT&html.x=207&html.y=42&C=C8P&Filter=N
+We obtain data from the Bank of England Exchange Rate Database, particularly the daily spot rate between USD and GBP, XUDLUSS, from 01 January 1980 to 30 June 1985 which at the time of writing can be downloaded directly from:
+https://www.bankofengland.co.uk/boeapps/database/fromshowcolumns.asp?Travel=NIxSTxTIxSUx&FromSeries=1&ToSeries=50&DAT=RNG&FD=1&FM=Oct&FY=1981&TD=28&TM=Jun&TY=1985&FNY=&CSVF=TT&html.x=207&html.y=42&C=C8P&Filter=N
+
 ``` r
 library(orc.smc)
 library(dplyr)
 #replace with your own data path 
-df <- read.csv("Data.csv", header = TRUE)
+df <- read.csv("usd_gbp_spot_1980_1985.csv", header = TRUE)
 
 value_col <- df[, 2]
 values <- rev(as.numeric(value_col))
