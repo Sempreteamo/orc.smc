@@ -506,16 +506,21 @@ write.csv(all_results, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep50.csv
 ## Experiment for Figure 5
 The experiment is repeated 50 times
 ``` r
-library(orc.smc)
+#replace with your own data path 
+df <- read.csv("Data.csv", header = TRUE)
 
-lag_values <- c(2, 4, 8, 16)
-n_repeats   <- 50  
-N_particles <- 200 
-Time_svm   <- 945
+value_col <- df[, 2]
+values <- rev(as.numeric(value_col))
+log_diff_result <- diff(log(values))
+
+obs_svm  <- 100*log_diff_result
+data_svm <- list(obs = obs_svm)
 
 alpha_svm  <- 0.986
 sigma_svm  <- 0.13
 beta_svm   <- 0.69
+Time_svm   <- length(obs_svm)
+N_particles <- 200 
 
 ini_var_svm <- sigma_svm^2 / (1 - alpha_svm^2)
 
@@ -530,20 +535,17 @@ model_svm <- list(
   parameters = list(k = 5, tau = 0.5, kappa = 0.5) 
 )
 
-set.seed(123)
-obs_svm <- sample_obs(model_svm, Time_svm, d = 1)
-data_svm <- list(obs = obs_svm)
-
 results_list <- list()
 
 for (r in 1:n_repeats) {
   set.seed(r)
-  
+  message("Running ORC Simulation Repeat: ", r)
   for (l_val in lag_values) {
+    
     output <- Orc_SMC(l_val, data_svm, model_svm, N_particles)
     val <- output$logZ[Time_svm]
     
-    
+  
     results_list[[length(results_list) + 1]] <- data.frame(
       value = val,
       method = "ORCSMC",
@@ -552,11 +554,9 @@ for (r in 1:n_repeats) {
   }
 }
 
-
 fig <- do.call(rbind, results_list)
 
-write.csv(fig,'bpf+orc_N200_d1_lag2-16_svm_rep50.csv', row.names = FALSE)
-
+write.csv(fig,'bpf+orc_N200_d1_lag2-16_svm_rep100.csv', row.names = FALSE)
 
 ```
 
