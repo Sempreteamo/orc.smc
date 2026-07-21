@@ -719,6 +719,8 @@ df_all_history <- bind_rows(history_list)
 ## Experiment for Figure 9
 
 ``` r
+library(orc.smc)
+
 Time      <- 100
 d_values    <- c(2, 4, 8, 16, 32, 64)
 alpha     <- 0.415
