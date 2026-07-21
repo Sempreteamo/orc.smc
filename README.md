@@ -504,7 +504,7 @@ write.csv(all_results, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep50.csv
 ```
 
 ## Experiment for Figure 5
-The experiment is repeated 50 times
+The financial dataset we used in this experiment is downloaded from: https://www.bankofengland.co.uk/boeapps/database/fromshowcolumns.asp?Travel=NIxSTxTIxSUx&FromSeries=1&ToSeries=50&DAT=RNG&FD=1&FM=Oct&FY=1981&TD=28&TM=Jun&TY=1985&FNY=&CSVF=TT&html.x=207&html.y=42&C=C8P&Filter=N
 ``` r
 library(orc.smc)
 library(dplyr)
