@@ -506,15 +506,21 @@ write.csv(all_results, "orc+bpf+iapf_N1000T100_d2-64_lag2-16_non-diagf_rep50.csv
 ## Experiment for Figure 5
 The experiment is repeated 50 times
 ``` r
+library(orc.smc)
+library(dplyr)
 #replace with your own data path 
 df <- read.csv("Data.csv", header = TRUE)
 
 value_col <- df[, 2]
 values <- rev(as.numeric(value_col))
 log_diff_result <- diff(log(values))
+log_diff_result_clean <- log_diff_result[log_diff_result != 0]
 
-obs_svm  <- 100*log_diff_result
+obs_svm  <- as.matrix(100*log_diff_result_clean)
 data_svm <- list(obs = obs_svm)
+
+lag_values <- c(2, 4, 8, 16)
+n_repeats   <- 50  
 
 alpha_svm  <- 0.986
 sigma_svm  <- 0.13
@@ -545,7 +551,7 @@ for (r in 1:n_repeats) {
     output <- Orc_SMC(l_val, data_svm, model_svm, N_particles)
     val <- output$logZ[Time_svm]
     
-  
+    
     results_list[[length(results_list) + 1]] <- data.frame(
       value = val,
       method = "ORCSMC",
@@ -557,6 +563,7 @@ for (r in 1:n_repeats) {
 fig <- do.call(rbind, results_list)
 
 write.csv(fig,'bpf+orc_N200_d1_lag2-16_svm_rep100.csv', row.names = FALSE)
+
 
 ```
 
