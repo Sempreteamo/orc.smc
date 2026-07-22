@@ -926,7 +926,7 @@ summary_df <- orc_df %>%
   ) %>%
   mutate(x_label = factor(lag, levels = c(2, 3, 4, 5, 8, 16)))
 
-tikz("rmse.tex", width = 5, height = 2.75, sanitize = TRUE)
+tikz("rmse.tex", width = 5, height = 2.75, sanitize = FALSE)
 p <- ggplot(summary_df, aes(x = x_label, y = rmse, color = as.factor(d))) +
   geom_point(aes(shape = as.factor(d)), position = position_dodge(width = 0.5), size = 3) +
   geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.2, position = position_dodge(width = 0.5)) +
