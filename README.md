@@ -959,7 +959,8 @@ p <- ggplot(df_l1, aes(x = lag, y = Value, fill = Time_Factor)) +
   scale_fill_grey(start = 0.7, end = 0.9, labels = c("X1" = "$1$", "T.2" = "$T/2$", "T" = "$T$")) +
   facet_wrap(~d, nrow = 2, ncol = 3, scales = "free_y", 
              labeller = as_labeller(c("2"="$d=2$","4"="$d=4$","8"="$d=8$","16"="$d=16$","32"="$d=32$","64"="$d=64$"))) +
-  labs(x = "Lag $L$", y = "Wasserstein-1 distance", fill = "Time step")
+  labs(x = "Lag $L$", y = "Wasserstein-1 distance", fill = "Time step") +
+  theme_bw()
 
 print(p)
 dev.off()
