@@ -1029,8 +1029,15 @@ dev.off()
 #### Figure 7 ####
 # ##############################################################################
 # Multivariate Neuro-scientific data analysis
-df_neuro_nd <- read.csv(DATA_PATHS$neuro_nd) %>% rename(LogZ = x) %>% select(-X) %>%
-  mutate(d = factor(d, levels = c(2, 4, 8, 16, 32, 64)), lag = factor(lag, levels = c(2, 4, 8, 16)))
+df_neuro_nd <- read.csv(DATA_PATHS$neuro_nd) %>% 
+  rename(LogZ = x) %>% 
+  select(-X) %>%
+  mutate(
+    d = factor(d, levels = c(2, 4, 8, 16, 32, 64)), 
+    lag = factor(lag, levels = c(2, 4, 8, 16))
+  ) %>%
+  filter(!is.na(d))
+theme_set(theme_bw())
 
 theme_set(theme_bw())
 
