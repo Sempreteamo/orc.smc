@@ -991,21 +991,22 @@ dev.off()
 # Neuro-scientific dataset: ESS Evolution and NC Distribution
 theme_set(theme_bw())
 
-ess_df_long <- read.csv(DATA_PATHS$neuro_ess) %>% 
-  select(-X) %>% 
-  pivot_longer(cols = starts_with("l"), names_to = "Lag", values_to = "ESS") %>% 
-  mutate(Lag = factor(as.numeric(gsub("l", "", Lag)), levels = c(2, 4, 8, 16)))
-
 logz_df <- read.csv(DATA_PATHS$neuro_1d) %>% 
   rename(LogZ = x) %>%          
   select(-X) %>%                
   mutate(Lag = factor(lag, levels = c(2, 4, 8, 16))) %>%
   filter(d == 1)  
 
+ess_df_long <- read.csv(DATA_PATHS$neuro_ess) %>%  
+  select(-X) %>%  
+  pivot_longer(cols = starts_with("l"), names_to = "Lag", values_to = "ESS") %>%  
+  mutate(Lag = factor(as.numeric(gsub("l", "", Lag)), levels = c(2, 4, 8, 16))) %>%
+  filter(Lag != 8)
+
 p_ess <- ggplot(ess_df_long, aes(x = Time, y = ESS, color = Lag)) +
-  geom_line(linewidth = 0.7) + 
+  geom_line(linewidth = 0.7) +  
   geom_hline(yintercept = 500, linetype = "dashed") +
-  scale_color_viridis_d(option = "viridis") + 
+  scale_color_viridis_d(option = "viridis") +  
   labs(x = "Time step", y = "ESS") +
   theme_bw()
 
@@ -1019,7 +1020,8 @@ p_logz <- ggplot(logz_df, aes(x = Lag, y = LogZ)) +
   theme(
     axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0))
   )
-tikz("neuro_ess.tex", width = 3.3, height = 3.2, sanitize = FALSE)
+
+tikz("neuro_ess.tex", width = 3.4, height = 3.2, sanitize = FALSE)
 print(p_ess)
 dev.off()
 
